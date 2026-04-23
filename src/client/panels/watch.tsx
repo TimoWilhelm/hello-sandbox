@@ -70,6 +70,7 @@ export function WatchPanel() {
 	const [fileRefreshKey, setFileRefreshKey] = useState(0);
 	const eventSourceReference = useRef<EventSource | undefined>(undefined);
 	const eventIdReference = useRef(0);
+	const watcherStarted = useRef(false);
 
 	const startWatching = useCallback(() => {
 		if (eventSourceReference.current) {
@@ -138,13 +139,16 @@ export function WatchPanel() {
 	}
 
 	useEffect(() => {
-		startWatching();
+		if (!watcherStarted.current) {
+			watcherStarted.current = true;
+			startWatching();
+		}
 		return () => {
 			if (eventSourceReference.current) {
 				eventSourceReference.current.close();
 			}
 		};
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [startWatching]);
 
 	return (
 		<section className="flex flex-col gap-6">

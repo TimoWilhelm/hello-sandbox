@@ -133,7 +133,10 @@ export function InterpreterSlide({ step }: SlideProperties) {
 	const runIdReference = useRef(0);
 	const contextIdReference = useRef(contextId);
 	const preReference = useRef<HTMLPreElement>(null);
-	contextIdReference.current = contextId;
+
+	useEffect(() => {
+		contextIdReference.current = contextId;
+	}, [contextId]);
 
 	// Single execute function that takes explicit code+language+contextId.
 	// Uses a run ID to discard stale responses.

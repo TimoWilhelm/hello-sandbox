@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Callout } from '@/components/callout';
 import { Card, CardHeader, CardBody } from '@/components/card';
@@ -46,8 +46,9 @@ export function FilesPanel() {
 	const [writePath, setWritePath] = useState('/workspace/hello.txt');
 	const [writeContent, setWriteContent] = useState('Hello from the Sandbox SDK!');
 	const [actionOutput, setActionOutput] = useState<string | undefined>();
+	const hasFetched = useRef(false);
 
-	async function listDirectory(path: string) {
+	const listDirectory = useCallback(async (path: string) => {
 		setLoading(true);
 		setError(undefined);
 		try {
@@ -61,7 +62,7 @@ export function FilesPanel() {
 		} finally {
 			setLoading(false);
 		}
-	}
+	}, []);
 
 	async function readFile(path: string) {
 		setLoading(true);
@@ -116,8 +117,11 @@ export function FilesPanel() {
 	}
 
 	useEffect(() => {
-		void listDirectory('/workspace');
-	}, []);
+		if (!hasFetched.current) {
+			hasFetched.current = true;
+			void listDirectory('/workspace');
+		}
+	}, [listDirectory]);
 
 	return (
 		<section className="flex flex-col gap-6">
