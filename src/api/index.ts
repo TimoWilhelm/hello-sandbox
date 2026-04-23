@@ -6,6 +6,7 @@ import { deleteCookie } from 'hono/cookie';
 import { cors } from 'hono/cors';
 
 import ai from './ai';
+import auth from './auth';
 import backup from './backup';
 import exec from './exec';
 import files from './files';
@@ -19,6 +20,7 @@ api.use('/*', cors());
 
 // Mount sub-routers
 api.route('/exec', exec);
+api.route('/auth', auth);
 api.route('/files', files);
 api.route('/code', interpreter);
 api.route('/ai', ai);
@@ -31,7 +33,7 @@ api.get('/status', (c) =>
 	c.json({
 		sandbox: c.get('sandboxId'),
 		status: 'ready',
-		features: ['exec', 'files', 'code-interpreter', 'ai', 'terminal', 'preview', 'watch', 'backup'],
+		features: ['exec', 'files', 'code-interpreter', 'ai', 'terminal', 'preview', 'watch', 'backup', 'auth'],
 	}),
 );
 

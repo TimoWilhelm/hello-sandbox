@@ -1,5 +1,6 @@
 import { AISlide } from './content/ai';
 import { ArchitectureSlide } from './content/architecture';
+import { AuthSlide } from './content/auth';
 import { BackupSlide } from './content/backup';
 import { ClosingSlide } from './content/closing';
 import { CommandsSlide } from './content/commands';
@@ -34,6 +35,7 @@ export const SLIDES: SlideDefinition[] = [
 	{ id: 'watch', title: 'File Watching', component: WatchSlide, steps: WatchSlide.steps },
 	{ id: 'opencode', title: 'AI Coding Agents', component: OpencodeSlide, steps: OpencodeSlide.steps },
 	{ id: 'backup', title: 'Backup & Restore', component: BackupSlide, steps: BackupSlide.steps },
+	{ id: 'auth', title: 'Outbound Auth', component: AuthSlide, steps: AuthSlide.steps },
 
 	// Closing
 	{ id: 'closing', title: 'Get Started', component: ClosingSlide, steps: ClosingSlide.steps },

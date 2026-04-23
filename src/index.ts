@@ -1,13 +1,22 @@
-import { getSandbox, proxyToSandbox } from '@cloudflare/sandbox';
+import { Sandbox as BaseSandbox, getSandbox, proxyToSandbox } from '@cloudflare/sandbox';
 import { createOpencodeServer } from '@cloudflare/sandbox/opencode';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 
 import api from './api';
 
-// Required: re-export Sandbox classes for Durable Object bindings
-export { Sandbox } from '@cloudflare/sandbox';
-export { Sandbox as OpencodeSandbox } from '@cloudflare/sandbox';
+export class Sandbox extends BaseSandbox {
+	interceptHttps = true;
+}
+
+Sandbox.outboundByHost = {
+	'httpbin.org': (request: Request) => {
+		const requestWithAuth = new Request(request);
+		requestWithAuth.headers.set('Authorization', 'Bearer sb_demo_secret_token_12345');
+		requestWithAuth.headers.set('X-Sandbox-Auth', 'injected-by-outbound-worker');
+		return fetch(requestWithAuth);
+	},
+};
 
 const COOKIE_NAME = 'sandbox_id';
 
@@ -100,3 +109,5 @@ app.all('*', async (c) => {
 });
 
 export default app;
+
+export { ContainerProxy, Sandbox as OpencodeSandbox } from '@cloudflare/sandbox';

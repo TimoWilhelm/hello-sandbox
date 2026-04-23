@@ -8,6 +8,7 @@ import {
 	Eye,
 	MonitorCog,
 	Archive,
+	KeyRound,
 	Presentation,
 	Github,
 	Menu,
@@ -20,6 +21,7 @@ import { ErrorBoundary } from './components/error-boundary';
 import { ReconnectModal } from './components/reconnect-modal';
 import { useSandboxId } from './lib/use-sandbox-id';
 import { AIPanel } from './panels/ai';
+import { AuthPanel } from './panels/auth';
 import { BackupPanel } from './panels/backup';
 import { CommandsPanel } from './panels/commands';
 import { FilesPanel } from './panels/files';
@@ -49,6 +51,7 @@ const PANELS: PanelDefinition[] = [
 	{ id: 'watch', label: 'Watch', icon: Eye, component: WatchPanel },
 	{ id: 'opencode', label: 'OpenCode', icon: MonitorCog, component: OpencodePanel },
 	{ id: 'backup', label: 'Backup', icon: Archive, component: BackupPanel },
+	{ id: 'auth', label: 'Auth', icon: KeyRound, component: AuthPanel },
 ];
 
 function getInitialPanel(): string {
