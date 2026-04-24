@@ -39,6 +39,8 @@ const TERMINAL_THEME = {
 	cursor: '#FF4801',
 	cursorAccent: '#2a1a0e',
 	selectionBackground: 'rgba(255, 72, 1, 0.3)',
+	selectionInactiveBackground: 'rgba(255, 72, 1, 0.3)',
+	selectionForeground: '#f5ede0',
 	black: '#1a1008',
 	red: '#dc2626',
 	green: '#16a34a',
@@ -56,6 +58,25 @@ const TERMINAL_THEME = {
 	brightCyan: '#22d3ee',
 	brightWhite: '#ffffff',
 };
+
+async function readClipboard(): Promise<string | undefined> {
+	try {
+		return await navigator.clipboard?.readText();
+	} catch {
+		return undefined;
+	}
+}
+
+function writeClipboard(text: string): void {
+	const promise = navigator.clipboard?.writeText(text);
+	if (promise) {
+		void promise.catch((error: unknown) => {
+			console.error('Clipboard writeText failed:', error);
+		});
+	} else {
+		console.warn('navigator.clipboard.writeText unavailable');
+	}
+}
 
 /* Animated connection indicator -- signal bars bouncing */
 function ConnectingAnimation() {
@@ -95,6 +116,14 @@ export function TerminalPanel() {
 	const [connected, setConnected] = useState(false);
 	const sandboxId = useSandboxId();
 
+	function sendInput(data: string) {
+		const terminal = terminalReference.current;
+		if (!terminal) return;
+
+		terminal.paste(data);
+		terminal.focus();
+	}
+
 	useEffect(() => {
 		const container = containerReference.current;
 		if (!container || !sandboxId) return;
@@ -126,6 +155,44 @@ export function TerminalPanel() {
 				allowProposedApi: true,
 			});
 
+			// Add terminal copy/paste shortcuts.
+			terminal.attachCustomKeyEventHandler((event) => {
+				if (event.type !== 'keydown') return true;
+				if (event.altKey || event.metaKey) return true;
+
+				// Ctrl+C: if a selection exists, copy it (VS Code pattern);
+				// otherwise fall through so the shell gets SIGINT.
+				if (event.ctrlKey && !event.shiftKey && event.code === 'KeyC') {
+					const selection = terminal?.getSelection() ?? '';
+					if (!selection) return true;
+					event.preventDefault();
+					writeClipboard(selection);
+					terminal?.clearSelection();
+					return false;
+				}
+
+				if (!event.ctrlKey || !event.shiftKey) return true;
+
+				// Ctrl+Shift+C: copy selection on platforms/browsers that deliver
+				// this shortcut to the terminal.
+				if (event.code === 'KeyC') {
+					event.preventDefault();
+					const selection = terminal?.getSelection() ?? '';
+					if (selection) writeClipboard(selection);
+					return false;
+				}
+
+				if (event.code === 'KeyV') {
+					event.preventDefault();
+					void readClipboard().then((text) => {
+						if (text) terminal?.paste(text);
+					});
+					return false;
+				}
+
+				return true;
+			});
+
 			const fitAddon = new FitAddon();
 			terminal.loadAddon(fitAddon);
 
@@ -136,9 +203,7 @@ export function TerminalPanel() {
 					return `${origin}/ws/terminal?${parameters}`;
 				},
 				onStateChange: (state) => {
-					if (!disposed) {
-						setConnected(state === 'connected');
-					}
+					if (!disposed) setConnected(state === 'connected');
 				},
 			});
 
@@ -148,7 +213,7 @@ export function TerminalPanel() {
 
 			terminalReference.current = terminal;
 
-			// SandboxAddon requires an explicit connect() call to open the WebSocket
+			// Open the terminal WebSocket.
 			sandboxAddon.connect({ sandboxId });
 
 			resizeObserver = new ResizeObserver(() => {
@@ -169,10 +234,7 @@ export function TerminalPanel() {
 	}, [sandboxId]);
 
 	function sendCommand(command: string) {
-		if (terminalReference.current) {
-			terminalReference.current.paste(command);
-			terminalReference.current.focus();
-		}
+		sendInput(command);
 	}
 
 	return (

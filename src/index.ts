@@ -60,7 +60,7 @@ app.use('*', async (c, next) => {
 	return next();
 });
 
-// WebSocket terminal upgrade — must be handled before Hono JSON routing
+// WebSocket terminal upgrade. PTY job control is configured in the image.
 app.get('/ws/terminal', async (c) => {
 	if (c.req.header('Upgrade') !== 'websocket') {
 		return c.text('WebSocket upgrade required', 426);

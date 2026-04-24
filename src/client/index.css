@@ -185,6 +185,15 @@
 		background: oklch(from #ff4801 l c h / 40%);
 		color: #fff;
 	}
+
+	/* Don't fight xterm's own accessibility-tree selection styling; xterm
+	 * paints the selection on its canvas layer and keeps the DOM selection
+	 * color transparent so it doesn't double-render. */
+	& .xterm .xterm-accessibility-tree *::selection,
+	& .xterm .xterm-accessibility *::selection {
+		background: transparent;
+		color: transparent;
+	}
 }
 
 /* Dot pattern background */

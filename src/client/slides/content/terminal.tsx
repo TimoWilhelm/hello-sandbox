@@ -13,6 +13,8 @@ const TERMINAL_THEME = {
 	cursor: '#FF4801',
 	cursorAccent: '#2a1a0e',
 	selectionBackground: 'rgba(255, 72, 1, 0.3)',
+	selectionInactiveBackground: 'rgba(255, 72, 1, 0.3)',
+	selectionForeground: '#f5ede0',
 	black: '#1a1008',
 	red: '#dc2626',
 	green: '#16a34a',
@@ -39,6 +41,21 @@ const QUICK_CMDS = [
 	{ label: 'Files', cmd: 'ls -la /workspace\r' },
 ];
 
+async function readClipboard(): Promise<string | undefined> {
+	try {
+		return await navigator.clipboard?.readText();
+	} catch {
+		return undefined;
+	}
+}
+
+function writeClipboard(text: string): void {
+	const promise = navigator.clipboard?.writeText(text);
+	if (promise) {
+		void promise.catch(() => {});
+	}
+}
+
 /**
  * Slide 7: Interactive Terminal
  * Steps: 0=title+subtitle, 1=terminal
@@ -49,6 +66,14 @@ export function TerminalSlide({ step }: SlideProperties) {
 	const [connected, setConnected] = useState(false);
 
 	const showTerminal = step >= 1;
+
+	function sendInput(data: string) {
+		const terminal = termReference.current;
+		if (!terminal) return;
+
+		terminal.paste(data);
+		terminal.focus();
+	}
 
 	useEffect(() => {
 		if (!showTerminal || !containerReference.current) return;
@@ -76,6 +101,44 @@ export function TerminalSlide({ step }: SlideProperties) {
 				cursorStyle: 'bar',
 				theme: TERMINAL_THEME,
 				allowProposedApi: true,
+			});
+
+			// Add terminal copy/paste shortcuts.
+			terminal.attachCustomKeyEventHandler((event) => {
+				if (event.type !== 'keydown') return true;
+				if (event.altKey || event.metaKey) return true;
+
+				// Ctrl+C: if a selection exists, copy it (VS Code pattern);
+				// otherwise fall through so the shell gets SIGINT.
+				if (event.ctrlKey && !event.shiftKey && event.code === 'KeyC') {
+					const selection = terminal?.getSelection() ?? '';
+					if (!selection) return true;
+					event.preventDefault();
+					writeClipboard(selection);
+					terminal?.clearSelection();
+					return false;
+				}
+
+				if (!event.ctrlKey || !event.shiftKey) return true;
+
+				// Ctrl+Shift+C: copy selection (note: on Windows Chrome this also
+				// opens DevTools and can't always be suppressed by the page).
+				if (event.code === 'KeyC') {
+					event.preventDefault();
+					const selection = terminal?.getSelection() ?? '';
+					if (selection) writeClipboard(selection);
+					return false;
+				}
+
+				if (event.code === 'KeyV') {
+					event.preventDefault();
+					void readClipboard().then((text) => {
+						if (text) terminal?.paste(text);
+					});
+					return false;
+				}
+
+				return true;
 			});
 
 			const fitAddon = new FitAddon();
@@ -109,8 +172,7 @@ export function TerminalSlide({ step }: SlideProperties) {
 	}, [showTerminal]);
 
 	function sendCmd(cmd: string) {
-		termReference.current?.paste(cmd);
-		termReference.current?.focus();
+		sendInput(cmd);
 	}
 
 	return (
