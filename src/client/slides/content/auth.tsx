@@ -107,7 +107,7 @@ export function AuthSlide({ step }: SlideProperties) {
 
 	return (
 		<SlideLayout>
-			<SlideTitle number="10" title="Outbound Auth" subtitle="Intercept outgoing requests. Inject credentials transparently." step={step} />
+			<SlideTitle number="11" title="Outbound Auth" subtitle="Intercept outgoing requests. Inject credentials transparently." step={step} />
 
 			<div className="mt-8 flex flex-1 flex-col gap-6">
 				{step >= 1 && (

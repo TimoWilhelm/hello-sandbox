@@ -31,7 +31,7 @@ const STEPS = [
 		label: 'Define your image',
 		file: 'Dockerfile',
 		description: 'Base image includes Python 3.11, Node.js 20, and common tools. Add your own dependencies on top.',
-		code: `FROM docker.io/cloudflare/sandbox:0.7.0
+		code: `FROM docker.io/cloudflare/sandbox:0.10.3-python
 
 RUN pip install pandas numpy requests
 RUN npm install -g typescript

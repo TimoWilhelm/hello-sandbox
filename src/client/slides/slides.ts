@@ -12,6 +12,7 @@ import { ProblemSlide } from './content/problem';
 import { SetupSlide } from './content/setup';
 import { TerminalSlide } from './content/terminal';
 import { TitleSlide } from './content/title';
+import { TunnelsSlide } from './content/tunnels';
 import { UseCasesSlide } from './content/use-cases';
 import { WatchSlide } from './content/watch';
 
@@ -32,6 +33,7 @@ export const SLIDES: SlideDefinition[] = [
 	{ id: 'ai', title: 'AI Code Execution', component: AISlide, steps: AISlide.steps },
 	{ id: 'terminal', title: 'Interactive Terminal', component: TerminalSlide, steps: TerminalSlide.steps },
 	{ id: 'preview', title: 'Preview URLs', component: PreviewSlide, steps: PreviewSlide.steps },
+	{ id: 'tunnels', title: 'Cloudflare Tunnels', component: TunnelsSlide, steps: TunnelsSlide.steps },
 	{ id: 'watch', title: 'File Watching', component: WatchSlide, steps: WatchSlide.steps },
 	{ id: 'opencode', title: 'AI Coding Agents', component: OpencodeSlide, steps: OpencodeSlide.steps },
 	{ id: 'backup', title: 'Backup & Restore', component: BackupSlide, steps: BackupSlide.steps },

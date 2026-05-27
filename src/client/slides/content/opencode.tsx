@@ -11,7 +11,7 @@ import { SlideTitle } from '../components/slide-title';
 import type { SlideProperties } from '../types';
 
 const CODE = `// Uses the official -opencode base image
-// FROM cloudflare/sandbox:0.8.6-opencode
+// FROM cloudflare/sandbox:0.10.3-opencode
 
 const sandbox = getSandbox(env.OpencodeSandbox, "opencode");
 const server = await createOpencodeServer(sandbox, {
@@ -49,7 +49,7 @@ export function OpencodeSlide({ step }: SlideProperties) {
 	return (
 		<SlideLayout>
 			<SlideTitle
-				number="08"
+				number="09"
 				title="AI Coding Agents"
 				subtitle="Run AI assistants like OpenCode directly in sandbox containers."
 				step={step}

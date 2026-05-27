@@ -7,10 +7,10 @@ Interactive demo app for the [Cloudflare Sandbox SDK](https://developers.cloudfl
 - Stateful Python and JavaScript REPL with variable persistence
 - Natural language to code: an LLM generates Python and executes it in the sandbox
 - Interactive terminal session via xterm.js over WebSocket
-- Start HTTP servers inside the container and expose them via preview URLs
+- Start HTTP servers inside the container and expose them via preview URLs or quick Cloudflare Tunnels
 - Live filesystem change stream via Server-Sent Events
 - Embedded [OpenCode](https://opencode.ai) agent running in a dedicated sandbox
-- Create and restore R2-backed squashfs snapshots
+- Mount an R2 bucket directly into the sandbox filesystem via Worker bindings
 - Slides mode (`?mode=slides`) for presenting
 
 ## Tech Stack
@@ -61,10 +61,10 @@ src/
     backup.ts           # POST /api/backup/*
   client/
     app.tsx             # Main app shell (sidebar nav, animated panels, status bar)
-    panels/             # One component per demo panel (9 panels)
+    panels/             # One component per demo panel (11 panels)
     components/         # Shared UI (badges, cards, code blocks, file tree, etc.)
     lib/                # API client, formatting, syntax highlighting, hooks
-    slides/             # Presentation mode (15 slides)
+    slides/             # Presentation mode (17 slides)
 ```
 
 ## Configuration
@@ -73,7 +73,7 @@ Cloudflare bindings in `wrangler.jsonc`:
 
 - `AI` (Workers AI) - LLM inference for the AI Exec panel
 - `ASSETS` (Static Assets) - SPA asset serving
-- `BACKUP_BUCKET` (R2 Bucket) - snapshot storage for backup/restore
+- `BACKUP_BUCKET` (R2 Bucket) - mounted into the sandbox with `sandbox.mountBucket()`
 - `Sandbox` (Durable Object) - main demo sandbox
 - `OpencodeSandbox` (Durable Object) - dedicated OpenCode agent sandbox
 

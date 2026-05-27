@@ -5,6 +5,7 @@ import {
 	Sparkles,
 	TerminalSquare,
 	Globe,
+	Route,
 	Eye,
 	MonitorCog,
 	Archive,
@@ -29,6 +30,7 @@ import { InterpreterPanel } from './panels/interpreter';
 import { OpencodePanel } from './panels/opencode';
 import { PreviewPanel } from './panels/preview';
 import { TerminalPanel } from './panels/terminal';
+import { TunnelsPanel } from './panels/tunnels';
 import { WatchPanel } from './panels/watch';
 import { SlidesMode } from './slides';
 
@@ -48,6 +50,7 @@ const PANELS: PanelDefinition[] = [
 	{ id: 'ai', label: 'AI Exec', icon: Sparkles, component: AIPanel },
 	{ id: 'terminal', label: 'Terminal', icon: TerminalSquare, component: TerminalPanel },
 	{ id: 'preview', label: 'Preview', icon: Globe, component: PreviewPanel },
+	{ id: 'tunnels', label: 'Tunnels', icon: Route, component: TunnelsPanel },
 	{ id: 'watch', label: 'Watch', icon: Eye, component: WatchPanel },
 	{ id: 'opencode', label: 'OpenCode', icon: MonitorCog, component: OpencodePanel },
 	{ id: 'backup', label: 'Backup', icon: Archive, component: BackupPanel },

@@ -12,6 +12,7 @@ import exec from './exec';
 import files from './files';
 import interpreter from './interpreter';
 import preview from './preview';
+import tunnels from './tunnels';
 import watch from './watch';
 
 const api = new Hono<{ Bindings: Env; Variables: { sandboxId: string } }>();
@@ -25,6 +26,7 @@ api.route('/files', files);
 api.route('/code', interpreter);
 api.route('/ai', ai);
 api.route('/preview', preview);
+api.route('/tunnels', tunnels);
 api.route('/watch', watch);
 api.route('/backup', backup);
 
@@ -33,7 +35,7 @@ api.get('/status', (c) =>
 	c.json({
 		sandbox: c.get('sandboxId'),
 		status: 'ready',
-		features: ['exec', 'files', 'code-interpreter', 'ai', 'terminal', 'preview', 'watch', 'backup', 'auth'],
+		features: ['exec', 'files', 'code-interpreter', 'ai', 'terminal', 'preview', 'tunnels', 'watch', 'backup', 'auth'],
 	}),
 );
 

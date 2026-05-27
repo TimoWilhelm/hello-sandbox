@@ -15,7 +15,7 @@ const server = await createOpencodeServer(sandbox, {
 const { url } = await sandbox.exposePort(server.port, { hostname });`;
 
 const DOCKERFILE_CODE = `# Uses the official OpenCode base image — includes the OpenCode CLI out of the box
-FROM docker.io/cloudflare/sandbox:0.8.6-opencode
+FROM docker.io/cloudflare/sandbox:0.10.3-opencode
 EXPOSE 8080`;
 
 function ConnectingBars() {

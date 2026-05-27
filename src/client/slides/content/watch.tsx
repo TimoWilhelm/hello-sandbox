@@ -127,7 +127,7 @@ export function WatchSlide({ step }: SlideProperties) {
 
 	return (
 		<SlideLayout>
-			<SlideTitle number="07" title="File Watching" subtitle="Real-time filesystem events via Server-Sent Events." step={step} />
+			<SlideTitle number="08" title="File Watching" subtitle="Real-time filesystem events via Server-Sent Events." step={step} />
 
 			<div className="mt-6 flex flex-1 flex-col gap-5 overflow-hidden">
 				<RevealCode code={CODE} visible={step >= 1} label="SDK" />

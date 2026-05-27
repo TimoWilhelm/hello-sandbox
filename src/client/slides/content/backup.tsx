@@ -1,181 +1,206 @@
-import { Camera, Trash2, RotateCcw, Check } from 'lucide-react';
+import { Database, HardDriveDownload, FileJson } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { FileTree } from '@/components/file-tree';
 import { Output, Stdout, Stderr, Info, Dim } from '@/components/output';
-import { Spinner } from '@/components/spinner';
 import { api } from '@/lib/api';
 
+import { CollapsibleCodeContext } from '../components/collapsible-code-context';
 import { Reveal } from '../components/reveal';
 import { SlideLayout } from '../components/slide-layout';
 import { SlideTitle } from '../components/slide-title';
 
 import type { SlideProperties } from '../types';
 
-interface BackupInfo {
-	id: string;
-	dir: string;
-}
-
-interface BackupStatus {
+interface MountStatus {
 	available: boolean;
 	message: string;
+	mode: 'local' | 'production';
 }
 
-const WORKFLOW_STEPS = [
-	{ icon: Camera, label: 'Snapshot', desc: 'Create backup', color: 'text-cf-success' },
-	{ icon: Trash2, label: 'Destroy', desc: 'Delete everything', color: 'text-cf-error' },
-	{ icon: RotateCcw, label: 'Restore', desc: 'Bring it all back', color: 'text-cf-info' },
+interface MountResult {
+	success: boolean;
+	path: string;
+	mode: 'local' | 'production';
+}
+
+interface WriteResult {
+	success: boolean;
+	path: string;
+}
+
+const MOUNT_PATH = '/data';
+
+const CODE = `await sandbox.mountBucket('BACKUP_BUCKET', '/data');
+await sandbox.writeFile('/data/results.json', JSON.stringify(results, null, 2));
+await sandbox.unmountBucket('/data');`;
+
+const FLOW_ITEMS = [
+	{ icon: Database, label: 'Worker binding', sub: 'BACKUP_BUCKET' },
+	{ icon: HardDriveDownload, label: 'Bucket mount', sub: "sandbox.mountBucket('/data')" },
+	{ icon: FileJson, label: 'Standard file I/O', sub: '/data/results.json' },
 ];
 
-/**
- * Slide 11: Backup & Restore
- * Steps: 0=title+subtitle, 1=workflow visual, 2=live demo
- */
 export function BackupSlide({ step }: SlideProperties) {
-	const [configStatus, setConfigStatus] = useState<BackupStatus | undefined>();
-	const [backup, setBackup] = useState<BackupInfo | undefined>();
+	const [status, setStatus] = useState<MountStatus | undefined>();
+	const [mounted, setMounted] = useState(false);
 	const [lines, setLines] = useState<string[]>([]);
-	const [loading, setLoading] = useState(false);
+	const [action, setAction] = useState<'mount' | 'write' | 'unmount' | undefined>();
 	const [error, setError] = useState<string | undefined>();
-	const [activeStep, setActiveStep] = useState(-1);
 	const [refreshKey, setRefreshKey] = useState(0);
 
 	useEffect(() => {
-		api<BackupStatus>('/api/backup/status')
-			.then(setConfigStatus)
-			.catch(() => setConfigStatus({ available: false, message: 'Unable to check config' }));
+		api<MountStatus>('/api/backup/status')
+			.then(setStatus)
+			.catch(() =>
+				setStatus({
+					available: false,
+					message: 'Unable to check config',
+					mode: 'local',
+				}),
+			);
 	}, []);
 
-	async function createBackup() {
-		setLoading(true);
+	async function mountBucket() {
+		setAction('mount');
 		setError(undefined);
-		setActiveStep(0);
 		try {
-			const data = await api<{ backup: BackupInfo }>('/api/backup/create', { dir: '/workspace' });
-			setBackup(data.backup);
-			setLines((p) => [...p, `$ sandbox.createBackup({ dir: "/workspace" })`, `Backup created: ${data.backup.id}`]);
-			setRefreshKey((k) => k + 1);
+			const data = await api<MountResult>('/api/backup/mount', { path: MOUNT_PATH });
+			setMounted(true);
+			setLines((previous) => [...previous, `$ sandbox.mountBucket('BACKUP_BUCKET', '${MOUNT_PATH}')`, `Mounted in ${data.mode} mode`]);
+			setRefreshKey((key) => key + 1);
 		} catch (error_) {
 			setError(error_ instanceof Error ? error_.message : 'Failed');
 		} finally {
-			setLoading(false);
+			setAction(undefined);
 		}
 	}
 
-	async function deleteAll() {
-		setLoading(true);
-		setActiveStep(1);
+	async function writeFile() {
+		setAction('write');
+		setError(undefined);
+		const timestamp = new Date().toISOString();
+		const path = `${MOUNT_PATH}/slide-${timestamp.replaceAll(':', '-').replaceAll('.', '-')}.json`;
+
 		try {
-			await api<{ stdout: string }>('/api/exec', { command: "rm -rf /workspace/* /workspace/.* 2>/dev/null; echo 'All files deleted'" });
-			setLines((p) => [...p, '', '$ rm -rf /workspace/*', 'All files deleted from /workspace']);
-			setRefreshKey((k) => k + 1);
+			const data = await api<WriteResult>('/api/backup/write', {
+				path,
+				content: JSON.stringify({ generatedAt: timestamp, slide: 'Mount R2 Buckets', persisted: true }, undefined, 2),
+			});
+			setLines((previous) => [...previous, '', `$ sandbox.writeFile('${data.path}', json)`, `Wrote ${data.path}`]);
+			setRefreshKey((key) => key + 1);
 		} catch (error_) {
 			setError(error_ instanceof Error ? error_.message : 'Failed');
 		} finally {
-			setLoading(false);
+			setAction(undefined);
 		}
 	}
 
-	async function restore() {
-		if (!backup) return;
-		setLoading(true);
-		setActiveStep(2);
+	async function unmountBucket() {
+		setAction('unmount');
+		setError(undefined);
 		try {
-			await api<{ success: boolean }>('/api/backup/restore', { backup });
-			setLines((p) => [...p, '', '$ sandbox.restoreBackup(backup)', 'Backup restored successfully!']);
-			setRefreshKey((k) => k + 1);
+			await api('/api/backup/unmount', { path: MOUNT_PATH });
+			setMounted(false);
+			setLines((previous) => [...previous, '', `$ sandbox.unmountBucket('${MOUNT_PATH}')`, `Unmounted ${MOUNT_PATH}`]);
 		} catch (error_) {
 			setError(error_ instanceof Error ? error_.message : 'Failed');
 		} finally {
-			setLoading(false);
+			setAction(undefined);
 		}
 	}
-
-	const isAvailable = configStatus?.available;
 
 	return (
 		<SlideLayout>
-			<SlideTitle number="09" title="Backup & Restore" subtitle="Create filesystem snapshots. Restore instantly." step={step} />
+			<SlideTitle
+				number="10"
+				title="Mount R2 Buckets"
+				subtitle="Mount a Worker binding and use normal filesystem operations."
+				step={step}
+			/>
 
 			<div className="mt-6 flex min-h-0 flex-1 flex-col gap-5">
 				{step >= 1 && (
-					<div className="flex items-center justify-center gap-6">
-						{WORKFLOW_STEPS.map((ws, index) => {
-							const Icon = ws.icon;
-							const done = activeStep > index;
-							const active = activeStep === index && loading;
-							return (
-								<div key={ws.label} className="flex items-center gap-6">
-									{index > 0 && (
-										<Reveal visible direction="none" index={index}>
-											<span className="text-3xl text-cf-text-subtle">&rarr;</span>
-										</Reveal>
-									)}
-									<Reveal visible direction="up" index={index}>
-										<div
-											className={`
-												flex flex-col items-center gap-2 rounded-xl border-2 px-8 py-5
-												${done ? 'border-cf-success/50 bg-cf-success/5' : active ? 'border-cf-orange bg-cf-orange/5' : 'border-cf-border bg-cf-bg-200'}
-											`}
-										>
-											{done ? (
-												<Check className="size-8 text-cf-success" strokeWidth={2} />
-											) : active ? (
-												<Spinner className="size-8" />
-											) : (
-												<Icon
-													className={`
-														size-8
-														${ws.color}
-													`}
-													strokeWidth={1.5}
-												/>
+					<div className="shrink-0">
+						<CollapsibleCodeContext step={step} code={CODE} label="SDK" summary="sandbox.mountBucket() → sandbox.writeFile()">
+							<div className="mb-5 flex items-center justify-center gap-5">
+								{FLOW_ITEMS.map((item, index) => {
+									const Icon = item.icon;
+									return (
+										<div key={item.label} className="flex items-center gap-5">
+											{index > 0 && (
+												<Reveal visible direction="none" index={index}>
+													<span className="text-3xl text-cf-text-subtle">&rarr;</span>
+												</Reveal>
 											)}
-											<div className="text-base font-semibold text-cf-text">{ws.label}</div>
-											<div className="text-base text-cf-text-muted">{ws.desc}</div>
+											<Reveal visible direction="up" index={index}>
+												<div
+													className="
+														flex min-w-[180px] flex-col items-center rounded-xl border
+														border-cf-border bg-cf-bg-200 px-8 py-5 text-center
+													"
+												>
+													<Icon className="size-8 text-cf-orange" strokeWidth={1.75} />
+													<div className="mt-3 text-lg font-semibold text-cf-text">{item.label}</div>
+													<div className="font-mono text-base text-cf-text-subtle">{item.sub}</div>
+												</div>
+											</Reveal>
 										</div>
-									</Reveal>
-								</div>
-							);
-						})}
+									);
+								})}
+							</div>
+						</CollapsibleCodeContext>
 					</div>
 				)}
 
 				{step >= 2 && (
 					<Reveal visible={step >= 2} className="flex min-h-0 flex-1 flex-col">
-						{!isAvailable && configStatus ? (
+						{status && !status.available ? (
 							<div
 								className="
 									rounded-lg border border-cf-border bg-cf-bg-200 px-5 py-4 text-base
 									text-cf-text-muted
 								"
 							>
-								Backup requires an R2 bucket binding. The concept: <code className="text-cf-orange">createBackup()</code> snapshots a
-								directory, <code className="text-cf-orange">restoreBackup()</code> restores it in-place.
+								{status.message}
 							</div>
 						) : (
 							<div className="flex min-h-0 flex-1 flex-col gap-4">
-								<div className="flex gap-3">
-									<button onClick={createBackup} disabled={loading || !!backup} className="btn-base btn-primary text-base">
-										{loading && activeStep === 0 ? 'Creating...' : backup ? 'Backup Created' : 'Create Backup'}
+								<div className="flex items-center gap-3">
+									<button onClick={mountBucket} disabled={action !== undefined || mounted} className="btn-base btn-primary text-base">
+										{action === 'mount' ? 'Mounting...' : mounted ? 'Bucket Mounted' : 'Mount Bucket'}
 									</button>
-									<button onClick={deleteAll} disabled={loading || !backup || activeStep >= 1} className="btn-base btn-ghost text-base">
-										{loading && activeStep === 1 ? 'Deleting...' : 'Delete All Files'}
+									<button onClick={writeFile} disabled={action !== undefined || !mounted} className="btn-base btn-ghost text-base">
+										{action === 'write' ? 'Writing...' : 'Write JSON'}
 									</button>
-									<button onClick={restore} disabled={loading || !backup || activeStep < 1} className="btn-base btn-primary text-base">
-										{loading && activeStep === 2 ? 'Restoring...' : 'Restore'}
+									<button onClick={unmountBucket} disabled={action !== undefined || !mounted} className="btn-base btn-primary text-base">
+										{action === 'unmount' ? 'Unmounting...' : 'Unmount'}
 									</button>
+									{status && (
+										<span className="text-sm text-cf-text-subtle">{status.mode === 'local' ? 'Local dev mode' : 'Production mode'}</span>
+									)}
 								</div>
 								<div className="flex min-h-0 flex-1 gap-4">
-									<FileTree refreshKey={refreshKey} compact className="w-64 shrink-0" />
+									{mounted ? (
+										<FileTree initialPath={MOUNT_PATH} refreshKey={refreshKey} compact className="w-72 shrink-0" />
+									) : (
+										<div
+											className="
+												flex w-72 shrink-0 items-center justify-center rounded-xl border
+												border-dashed border-cf-border bg-cf-bg-200 px-4 text-center text-sm
+												text-cf-text-subtle
+											"
+										>
+											Mount the bucket to browse persisted files
+										</div>
+									)}
 									<Output className="min-h-0 flex-1 text-base/relaxed">
-										{loading && lines.length === 0 && <Dim>Running...</Dim>}
+										{action !== undefined && lines.length === 0 && <Dim>Waiting for action...</Dim>}
 										{lines.map((line, index) => (
 											<span key={index}>
 												{line.startsWith('$') ? (
 													<span className="text-surface-dark-success">{line}</span>
-												) : line.includes('successfully') || line.includes('restored') ? (
+												) : line.startsWith('Mounted') || line.startsWith('Wrote') || line.startsWith('Unmounted') ? (
 													<Info>{line}</Info>
 												) : (
 													<Stdout>{line}</Stdout>
@@ -184,7 +209,7 @@ export function BackupSlide({ step }: SlideProperties) {
 											</span>
 										))}
 										{error && <Stderr>{error}</Stderr>}
-										{!loading && lines.length === 0 && !error && <Dim>Create a backup, delete files, then restore</Dim>}
+										{action === undefined && lines.length === 0 && !error && <Dim>Mount the bucket, then write a JSON file into R2</Dim>}
 									</Output>
 								</div>
 							</div>

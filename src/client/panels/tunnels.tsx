@@ -8,26 +8,27 @@ import { Output, Stdout, Stderr, Info } from '@/components/output';
 import { Spinner } from '@/components/spinner';
 import { api } from '@/lib/api';
 
-interface PreviewStartResult {
+interface TunnelStartResult {
 	success: boolean;
 	url: string;
 	port: number;
 }
 
-interface PreviewStopResult {
+interface TunnelStopResult {
 	success: boolean;
 }
 
-const SDK_CODE = `const proc = await sandbox.startProcess('python3 -m http.server 8080', {
+const SDK_CODE = `const proc = await sandbox.startProcess('python3 -m http.server 8081', {
   cwd: '/workspace',
 });
-await proc.waitForPort(8080, { mode: 'tcp', timeout: 10_000 });
-const { url } = await sandbox.exposePort(8080, { hostname });`;
+await proc.waitForPort(8081, { mode: 'tcp', timeout: 10_000 });
+const tunnel = await sandbox.tunnels.get(8081);
+return tunnel.url;`;
 
-export function PreviewPanel() {
-	const [command, setCommand] = useState('python3 -m http.server 8080');
-	const [port, setPort] = useState('8080');
-	const [previewUrl, setPreviewUrl] = useState<string | undefined>();
+export function TunnelsPanel() {
+	const [command, setCommand] = useState('python3 -m http.server 8081');
+	const [port, setPort] = useState('8081');
+	const [tunnelUrl, setTunnelUrl] = useState<string | undefined>();
 	const [loading, setLoading] = useState(false);
 	const [stopping, setStopping] = useState(false);
 	const [output, setOutput] = useState<string[]>([]);
@@ -39,14 +40,14 @@ export function PreviewPanel() {
 		setError(undefined);
 		setOutput((previous) => [...previous, `Starting: ${command}`]);
 		try {
-			const data = await api<PreviewStartResult>('/api/preview/start', {
+			const data = await api<TunnelStartResult>('/api/tunnels/start', {
 				command,
 				port: Number.parseInt(port, 10),
 			});
-			setOutput((previous) => [...previous, `Server started on port ${data.port}`, `Preview URL: ${data.url}`]);
-			setPreviewUrl(data.url);
+			setOutput((previous) => [...previous, `Server started on port ${data.port}`, `Tunnel URL: ${data.url}`]);
+			setTunnelUrl(data.url);
 		} catch (error_) {
-			setError(error_ instanceof Error ? error_.message : 'Failed to start preview');
+			setError(error_ instanceof Error ? error_.message : 'Failed to start tunnel');
 		} finally {
 			setLoading(false);
 		}
@@ -56,13 +57,13 @@ export function PreviewPanel() {
 		if (!port.trim()) return;
 		setStopping(true);
 		try {
-			await api<PreviewStopResult>('/api/preview/stop', {
+			await api<TunnelStopResult>('/api/tunnels/stop', {
 				port: Number.parseInt(port, 10),
 			});
-			setOutput((previous) => [...previous, `Stopped server on port ${port}`]);
-			setPreviewUrl(undefined);
+			setOutput((previous) => [...previous, `Tunnel closed for port ${port}`]);
+			setTunnelUrl(undefined);
 		} catch (error_) {
-			setError(error_ instanceof Error ? error_.message : 'Failed to stop preview');
+			setError(error_ instanceof Error ? error_.message : 'Failed to stop tunnel');
 		} finally {
 			setStopping(false);
 		}
@@ -71,16 +72,15 @@ export function PreviewPanel() {
 	return (
 		<section className="flex flex-col gap-6">
 			<div>
-				<h2 className="font-sans text-2xl font-medium text-cf-text">Preview URLs</h2>
+				<h2 className="font-sans text-2xl font-medium text-cf-text">Cloudflare Tunnels</h2>
 				<p className="mt-1 text-base text-cf-text-muted">
-					Start a server process in the sandbox, expose a port, and preview it live in an iframe with a public URL.
+					Expose a sandbox service on a public <code>*.trycloudflare.com</code> URL with zero DNS or hostname setup.
 				</p>
 			</div>
 
 			<CodeBlock code={SDK_CODE} />
 
 			<div className="flex flex-col gap-4">
-				{/* Controls */}
 				<div
 					className="
 						flex flex-col gap-2
@@ -116,21 +116,20 @@ export function PreviewPanel() {
 							"
 						>
 							{loading ? <Spinner className="size-4" /> : undefined}
-							Start & Expose
+							Start & Tunnel
 						</button>
-						<button onClick={stop} disabled={stopping || !previewUrl} className="btn-base flex items-center gap-2 btn-ghost">
+						<button onClick={stop} disabled={stopping || !tunnelUrl} className="btn-base flex items-center gap-2 btn-ghost">
 							{stopping ? <Spinner className="size-4" /> : undefined}
 							Stop
 						</button>
 					</div>
 				</div>
 
-				{/* Status output */}
 				{(output.length > 0 || error) && (
 					<Output>
 						{output.map((line, index) => (
 							<span key={index}>
-								{line.startsWith('Preview URL:') ? <Info>{line}</Info> : <Stdout>{line}</Stdout>}
+								{line.startsWith('Tunnel URL:') ? <Info>{line}</Info> : <Stdout>{line}</Stdout>}
 								{'\n'}
 							</span>
 						))}
@@ -138,14 +137,13 @@ export function PreviewPanel() {
 					</Output>
 				)}
 
-				{/* Preview iframe */}
-				{previewUrl && (
+				{tunnelUrl && (
 					<div className="flex flex-col gap-2">
-						<Badge variant="success">Live Preview</Badge>
-						<BrowserFrame url={previewUrl}>
+						<Badge variant="success">Tunnel Active</Badge>
+						<BrowserFrame url={tunnelUrl}>
 							<iframe
-								src={previewUrl}
-								title="Sandbox preview"
+								src={tunnelUrl}
+								title="Sandbox tunnel"
 								className="min-h-[400px] w-full flex-1 border-0"
 								sandbox="allow-scripts allow-same-origin allow-forms"
 							/>
@@ -153,23 +151,23 @@ export function PreviewPanel() {
 					</div>
 				)}
 
-				{!previewUrl && !loading && output.length === 0 && (
+				{!tunnelUrl && !loading && output.length === 0 && (
 					<div
 						className="
 							flex h-[200px] items-center justify-center rounded-lg border
 							border-dashed border-cf-border bg-cf-bg-200
 						"
 					>
-						<span className="text-sm text-cf-text-subtle">Start a server to see the live preview</span>
+						<span className="text-sm text-cf-text-subtle">Start a server to open a trycloudflare tunnel</span>
 					</div>
 				)}
 			</div>
 
 			<Callout>
-				<span className="font-medium">exposePort()</span> creates a publicly accessible URL for any port in the sandbox. Combined with{' '}
-				<span className="font-medium">waitForPort()</span>, you can reliably start a server and get its preview URL once it&apos;s ready to
-				accept connections. For zero-config public URLs on local dev or <code>.workers.dev</code>, see{' '}
-				<span className="font-medium">Cloudflare Tunnels</span>.
+				<span className="font-medium">sandbox.tunnels.get()</span> is the zero-config option for local development, demos, and{' '}
+				<code>.workers.dev</code> deployments. Tunnel URLs change when the container restarts, and <code>text/event-stream</code> is not
+				supported through <code>trycloudflare.com</code>. For stable production hostnames, use{' '}
+				<span className="font-medium">exposePort()</span>.
 			</Callout>
 		</section>
 	);
