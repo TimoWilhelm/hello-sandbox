@@ -157,6 +157,7 @@ function CodeExecutingState() {
 export function InterpreterPanel() {
 	const [code, setCode] = useState(PRESETS.fibonacci.python);
 	const [language, setLanguage] = useState<Language>('python');
+	const [activePreset, setActivePreset] = useState<string>('fibonacci');
 	const [contextId, setContextId] = useState<string | undefined>();
 	const [result, setResult] = useState<CodeResult | undefined>();
 	const [loading, setLoading] = useState(false);
@@ -190,15 +191,14 @@ export function InterpreterPanel() {
 		setLanguage(lang);
 		setContextId(undefined);
 		setResult(undefined);
-		for (const preset of Object.values(PRESETS)) {
-			if (code === preset.python || code === preset.javascript) {
-				setCode(preset[lang]);
-				return;
-			}
-		}
+		setError(undefined);
+		// Always load the active preset's variant for the new language,
+		// discarding any edits the user has made in the previous language.
+		setCode(PRESETS[activePreset][lang]);
 	}
 
 	function loadPreset(key: string) {
+		setActivePreset(key);
 		setCode(PRESETS[key][language]);
 		// Reset context so the preset starts with a clean execution environment.
 		// This prevents "already declared" errors when re-running JS snippets

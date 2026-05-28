@@ -124,6 +124,7 @@ console.log("State is persisted across executions!");`,
 export function InterpreterSlide({ step }: SlideProperties) {
 	const [code, setCode] = useState(PRESETS.fibonacci.python);
 	const [language, setLanguage] = useState<Language>('python');
+	const [activePreset, setActivePreset] = useState<string>('fibonacci');
 	const [contextId, setContextId] = useState<string | undefined>();
 	const [result, setResult] = useState<CodeResult | undefined>();
 	const [loading, setLoading] = useState(false);
@@ -202,18 +203,15 @@ export function InterpreterSlide({ step }: SlideProperties) {
 		setResult(undefined);
 		setError(undefined);
 		skipNextDebounce.current = true;
-		let newCode = code;
-		for (const preset of Object.values(PRESETS)) {
-			if (code === preset.python || code === preset.javascript) {
-				newCode = preset[lang];
-				setCode(newCode);
-				break;
-			}
-		}
+		// Always load the active preset's variant for the new language,
+		// discarding any edits the user has made in the previous language.
+		const newCode = PRESETS[activePreset][lang];
+		setCode(newCode);
 		void execute(newCode, lang);
 	}
 
 	function loadPreset(key: string) {
+		setActivePreset(key);
 		const newCode = PRESETS[key][language];
 		skipNextDebounce.current = true;
 		setCode(newCode);
