@@ -5,7 +5,18 @@ import { getCookie, setCookie } from 'hono/cookie';
 
 import api from './api';
 
-export class Sandbox extends BaseSandbox {
+const MAX_CONTAINER_LIFETIME_SECONDS = 3 * 60 * 60;
+const MAX_CONTAINER_LIFETIME_CALLBACK = 'destroy';
+
+class LifetimeLimitedSandbox extends BaseSandbox {
+	override async onStart() {
+		await super.onStart();
+		this.deleteSchedules(MAX_CONTAINER_LIFETIME_CALLBACK);
+		await this.schedule(MAX_CONTAINER_LIFETIME_SECONDS, MAX_CONTAINER_LIFETIME_CALLBACK);
+	}
+}
+
+export class Sandbox extends LifetimeLimitedSandbox {
 	interceptHttps = true;
 }
 
@@ -110,4 +121,6 @@ app.all('*', async (c) => {
 
 export default app;
 
-export { ContainerProxy, Sandbox as OpencodeSandbox } from '@cloudflare/sandbox';
+export class OpencodeSandbox extends LifetimeLimitedSandbox {}
+
+export { ContainerProxy } from '@cloudflare/sandbox';
