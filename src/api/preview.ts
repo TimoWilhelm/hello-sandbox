@@ -2,6 +2,10 @@ import { Hono } from 'hono';
 
 import { sandbox } from './sandbox';
 
+// Dedicated docroot so the preview demo never collides with the tunnel demo,
+// which serves its own page from a separate directory in the same sandbox.
+const PREVIEW_DIR = '/workspace/preview';
+
 const app = new Hono<{ Bindings: Env; Variables: { sandboxId: string } }>();
 
 app.post('/start', async (c) => {
@@ -15,14 +19,13 @@ app.post('/start', async (c) => {
 	const cmd = command || 'python3 -m http.server 8080';
 	const port = portRaw || 8080;
 
-	// Write a demo HTML page if missing
-	const exists = await sb.exists('/workspace/index.html');
-	if (!exists.exists) {
-		await sb.writeFile('/workspace/index.html', getDemoHTML());
-	}
+	// Always (over)write the demo page into the dedicated docroot so the
+	// preview deterministically serves its own content regardless of order.
+	await sb.mkdir(PREVIEW_DIR, { recursive: true });
+	await sb.writeFile(`${PREVIEW_DIR}/index.html`, getDemoHTML());
 
 	// Start server and wait for port readiness
-	const proc = await sb.startProcess(cmd, { cwd: '/workspace' });
+	const proc = await sb.startProcess(cmd, { cwd: PREVIEW_DIR });
 	await proc.waitForPort(port, { mode: 'tcp', timeout: 10_000 });
 
 	// Reuse existing preview URL if the port is already exposed
@@ -73,6 +76,7 @@ function getDemoHTML(): string {
   <div class="card">
     <h1>Hello from <span class="accent">Sandbox</span></h1>
     <p>Served from an isolated container on Cloudflare's edge network.</p>
+    <div class="badge">sandbox.exposePort(8080)</div>
   </div>
 </body>
 </html>`;
