@@ -16,8 +16,8 @@ app.post('/start', async (c) => {
 	const sb = sandbox(c);
 	// Use .host (includes port) so the SDK can construct correct local dev URLs
 	const hostname = new URL(c.req.url).host;
-	const cmd = command || 'python3 -m http.server 8080';
 	const port = portRaw || 8080;
+	const cmd = command || `python3 /opt/http-server.py ${port}`;
 
 	// Always (over)write the demo page into the dedicated docroot so the
 	// preview deterministically serves its own content regardless of order.
@@ -25,8 +25,7 @@ app.post('/start', async (c) => {
 	await sb.writeFile(`${PREVIEW_DIR}/index.html`, getDemoHTML());
 
 	// Start server and wait for port readiness
-	const proc = await sb.startProcess(cmd, { cwd: PREVIEW_DIR });
-	await proc.waitForPort(port, { mode: 'tcp', timeout: 10_000 });
+	await sb.startServer(cmd, port, PREVIEW_DIR);
 
 	// Reuse existing preview URL if the port is already exposed
 	const exposedPorts = await sb.getExposedPorts(hostname);

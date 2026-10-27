@@ -7,6 +7,7 @@ import { FileTree } from '@/components/file-tree';
 import { Output, Stdout, Stderr, Info } from '@/components/output';
 import { Spinner } from '@/components/spinner';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface MountStatus {
 	available: boolean;
@@ -32,19 +33,9 @@ interface UnmountResult {
 
 const MOUNT_PATH = '/data';
 
-const SDK_CODE = `await sandbox.mountBucket('BACKUP_BUCKET', '/data');
-await sandbox.writeFile('/data/results.json', JSON.stringify(results, null, 2));
-await sandbox.unmountBucket('/data');`;
+const SDK_CODE = sdkExamples.backup;
 
-const WRANGLER_CONFIG_EXAMPLE = `// wrangler.jsonc
-{
-  "r2_buckets": [
-    { "binding": "BACKUP_BUCKET", "bucket_name": "my-backup-bucket" }
-  ]
-}
-
-// src/index.ts
-export { ContainerProxy } from '@cloudflare/sandbox';`;
+const WRANGLER_CONFIG_EXAMPLE = sdkExamples.r2Config;
 
 export function BackupPanel() {
 	const [status, setStatus] = useState<MountStatus | undefined>();
@@ -107,7 +98,7 @@ export function BackupPanel() {
 			{
 				generatedAt: timestamp,
 				source: 'hello-sandbox',
-				feature: 'sandbox.mountBucket',
+				feature: 'sandbox.mountData',
 				results: ['mount binding', 'write file', 'persist in R2'],
 			},
 			undefined,
@@ -256,9 +247,9 @@ export function BackupPanel() {
 			</div>
 
 			<Callout>
-				<span className="font-medium">sandbox.mountBucket()</span> mounts your Worker&apos;s R2 binding directly into the sandbox. That lets
-				agents and services read or write persistent files with normal filesystem APIs, without generating or managing storage credentials
-				in the Worker.
+				<span className="font-medium">sandbox.mountData()</span> mounts your sandbox prefix in R2 through S3Mount. That lets agents and
+				services read or write persistent files with normal filesystem APIs, without generating or managing storage credentials in the
+				Worker.
 			</Callout>
 		</section>
 	);

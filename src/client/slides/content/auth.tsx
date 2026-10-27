@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/badge';
 import { Output, Stderr, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { CollapsibleCodeContext } from '../components/collapsible-code-context';
 import { Reveal } from '../components/reveal';
@@ -19,21 +20,7 @@ interface AuthResult {
 	duration: number;
 }
 
-const CODE = `import { Sandbox, ContainerProxy } from '@cloudflare/sandbox';
-export { ContainerProxy };
-
-export class MySandbox extends Sandbox {
-  interceptHttps = true;
-}
-
-MySandbox.outboundByHost = {
-  "httpbin.org": (request, env, ctx) => {
-    const requestWithAuth = new Request(request);
-    requestWithAuth.headers.set("Authorization", "Bearer sb_demo_secret_token_12345");
-    requestWithAuth.headers.set("X-Sandbox-Auth", "injected-by-outbound-worker");
-    return fetch(requestWithAuth);
-  },
-};`;
+const CODE = sdkExamples.auth;
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 

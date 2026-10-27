@@ -14,20 +14,19 @@ app.post('/start', async (c) => {
 		port?: number;
 	}>();
 	const sb = sandbox(c);
-	const cmd = command || 'python3 -m http.server 8081';
 	const port = portRaw || 8081;
+	const cmd = command || `python3 /opt/http-server.py ${port}`;
 
 	// Always (over)write the demo page into the dedicated docroot so the
 	// tunnel deterministically serves its own content regardless of order.
 	await sb.mkdir(TUNNEL_DIR, { recursive: true });
 	await sb.writeFile(`${TUNNEL_DIR}/index.html`, getDemoHTML());
 
-	const proc = await sb.startProcess(cmd, { cwd: TUNNEL_DIR });
-	await proc.waitForPort(port, { mode: 'tcp', timeout: 10_000 });
+	await sb.startServer(cmd, port, TUNNEL_DIR);
 
 	// tunnels.get() is idempotent (returns the cached tunnel for this port or
 	// spawns a fresh cloudflared process), so no manual list/reuse is needed.
-	const tunnel = await sb.tunnels.get(port);
+	const tunnel = await sb.openTunnel(port);
 
 	// A freshly spawned *.trycloudflare.com hostname is returned as soon as
 	// cloudflared reports it, but the public edge/DNS can take a few seconds
@@ -41,7 +40,7 @@ app.post('/start', async (c) => {
 
 app.post('/stop', async (c) => {
 	const { port } = await c.req.json<{ port?: number }>();
-	await sandbox(c).tunnels.destroy(port || 8081);
+	await sandbox(c).closeTunnel(port || 8081);
 	return c.json({ success: true });
 });
 
@@ -90,7 +89,7 @@ function getDemoHTML(): string {
   <div class="card">
     <h1>Quick <span class="accent">Tunnel</span></h1>
     <p>Served from a sandbox and exposed on a trycloudflare.com URL.</p>
-    <div class="badge">sandbox.tunnels.get(8081)</div>
+    <div class="badge">cloudflared tunnel --url localhost:8081</div>
   </div>
 </body>
 </html>`;

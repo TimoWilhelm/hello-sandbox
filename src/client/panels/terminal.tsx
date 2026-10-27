@@ -3,15 +3,13 @@ import { useState, useRef, useEffect } from 'react';
 
 import { Callout } from '@/components/callout';
 import { CodeBlock } from '@/components/code-block';
+import { sdkExamples } from '@/lib/sdk-examples';
+import { TerminalConnection } from '@/lib/terminal-connection';
 import { useSandboxId } from '@/lib/use-sandbox-id';
 
 import type { Terminal as XTerminal } from '@xterm/xterm';
 
-const SDK_CODE = `app.get('/ws/terminal', async (c) => {
-  const sandbox = getSandbox(c.env.Sandbox, sandboxId);
-  return await sandbox.terminal(c.req.raw, { cols: 120, rows: 30 });
-});
-// Browser: SandboxAddon + xterm.js`;
+const SDK_CODE = sdkExamples.terminal;
 
 const DEMO_COMMANDS = [
 	{ label: 'System info', command: 'uname -a\r' },
@@ -120,7 +118,7 @@ export function TerminalPanel() {
 		const terminal = terminalReference.current;
 		if (!terminal) return;
 
-		terminal.paste(data);
+		terminal.input(data, true);
 		terminal.focus();
 	}
 
@@ -136,11 +134,7 @@ export function TerminalPanel() {
 			// @ts-expect-error css module import
 			await import('@xterm/xterm/css/xterm.css');
 
-			const [{ Terminal }, { FitAddon }, { SandboxAddon }] = await Promise.all([
-				import('@xterm/xterm'),
-				import('@xterm/addon-fit'),
-				import('@cloudflare/sandbox/xterm'),
-			]);
+			const [{ Terminal }, { FitAddon }] = await Promise.all([import('@xterm/xterm'), import('@xterm/addon-fit')]);
 
 			// If the effect was cleaned up while we were loading, bail out
 			if (disposed) return;
@@ -196,25 +190,18 @@ export function TerminalPanel() {
 			const fitAddon = new FitAddon();
 			terminal.loadAddon(fitAddon);
 
-			const sandboxAddon = new SandboxAddon({
-				getWebSocketUrl: ({ sandboxId, sessionId, origin }) => {
-					const parameters = new URLSearchParams({ id: sandboxId });
-					if (sessionId) parameters.set('session', sessionId);
-					return `${origin}/ws/terminal?${parameters}`;
-				},
-				onStateChange: (state) => {
-					if (!disposed) setConnected(state === 'connected');
-				},
+			const connection = new TerminalConnection((connected) => {
+				if (!disposed) setConnected(connected);
 			});
 
-			terminal.loadAddon(sandboxAddon);
+			terminal.loadAddon(connection);
 			terminal.open(container);
 			fitAddon.fit();
 
 			terminalReference.current = terminal;
 
 			// Open the terminal WebSocket.
-			sandboxAddon.connect({ sandboxId });
+			connection.connect();
 
 			resizeObserver = new ResizeObserver(() => {
 				fitAddon.fit();
@@ -298,9 +285,8 @@ export function TerminalPanel() {
 			</div>
 
 			<Callout>
-				The terminal uses <span className="font-medium">xterm.js</span> with the <span className="font-medium">SandboxAddon</span> from{' '}
-				<code>@cloudflare/sandbox</code>. It connects via WebSocket for real-time bidirectional I/O, supporting full PTY features including
-				colors, cursor movement, and interactive programs.
+				The terminal uses <span className="font-medium">xterm.js</span> with a native PTY and tmux session in the container. It connects via
+				WebSocket for real-time bidirectional I/O, supporting full PTY features including colors, cursor movement, and interactive programs.
 			</Callout>
 		</section>
 	);

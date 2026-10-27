@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useRef, useEffect } from 'react';
 
+import { TerminalConnection } from '@/lib/terminal-connection';
+
 import { SlideLayout } from '../components/slide-layout';
 import { SlideTitle } from '../components/slide-title';
 
@@ -71,7 +73,7 @@ export function TerminalSlide({ step }: SlideProperties) {
 		const terminal = termReference.current;
 		if (!terminal) return;
 
-		terminal.paste(data);
+		terminal.input(data, true);
 		terminal.focus();
 	}
 
@@ -86,11 +88,7 @@ export function TerminalSlide({ step }: SlideProperties) {
 		void (async () => {
 			// @ts-expect-error css module import
 			await import('@xterm/xterm/css/xterm.css');
-			const [{ Terminal }, { FitAddon }, { SandboxAddon }] = await Promise.all([
-				import('@xterm/xterm'),
-				import('@xterm/addon-fit'),
-				import('@cloudflare/sandbox/xterm'),
-			]);
+			const [{ Terminal }, { FitAddon }] = await Promise.all([import('@xterm/xterm'), import('@xterm/addon-fit')]);
 			if (disposed) return;
 
 			terminal = new Terminal({
@@ -143,21 +141,14 @@ export function TerminalSlide({ step }: SlideProperties) {
 
 			const fitAddon = new FitAddon();
 			terminal.loadAddon(fitAddon);
-			const sandboxAddon = new SandboxAddon({
-				getWebSocketUrl: ({ sandboxId, sessionId, origin }) => {
-					const parameters = new URLSearchParams({ id: sandboxId });
-					if (sessionId) parameters.set('session', sessionId);
-					return `${origin}/ws/terminal?${parameters}`;
-				},
-				onStateChange: (state) => {
-					if (!disposed) setConnected(state === 'connected');
-				},
+			const connection = new TerminalConnection((connected) => {
+				if (!disposed) setConnected(connected);
 			});
-			terminal.loadAddon(sandboxAddon);
+			terminal.loadAddon(connection);
 			terminal.open(container);
 			fitAddon.fit();
 			termReference.current = terminal;
-			sandboxAddon.connect({ sandboxId: 'demo-sandbox' });
+			connection.connect();
 			resizeObserver = new ResizeObserver(() => fitAddon.fit());
 			resizeObserver.observe(container);
 		})();

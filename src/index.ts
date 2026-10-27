@@ -1,126 +1,67 @@
-import { Sandbox as BaseSandbox, getSandbox, proxyToSandbox } from '@cloudflare/sandbox';
-import { createOpencodeServer } from '@cloudflare/sandbox/opencode';
+import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Hono } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
 
 import api from './api';
 
-const MAX_CONTAINER_LIFETIME_SECONDS = 3 * 60 * 60;
-const MAX_CONTAINER_LIFETIME_CALLBACK = 'destroy';
+export { Sandbox, OpencodeSandbox } from './runtime/sandbox';
+export { S3Gateway } from '@cloudflare/sandbox';
 
-class LifetimeLimitedSandbox extends BaseSandbox {
-	override async onStart() {
-		await super.onStart();
-		this.deleteSchedules(MAX_CONTAINER_LIFETIME_CALLBACK);
-		await this.schedule(MAX_CONTAINER_LIFETIME_SECONDS, MAX_CONTAINER_LIFETIME_CALLBACK);
+export class Outbound extends WorkerEntrypoint {
+	async fetch(request: Request) {
+		if (new URL(request.url).hostname !== 'httpbin.org') return new Response('Origin is disallowed', { status: 403 });
+		const headers = new Headers(request.headers);
+		headers.set('Authorization', 'Bearer sb_demo_secret_token_12345');
+		headers.set('X-Sandbox-Auth', 'injected-by-outbound-worker');
+		return fetch(new Request(request, { headers }));
 	}
 }
 
-export class Sandbox extends LifetimeLimitedSandbox {
-	interceptHttps = true;
-}
-
-Sandbox.outboundByHost = {
-	'httpbin.org': (request: Request) => {
-		const requestWithAuth = new Request(request);
-		requestWithAuth.headers.set('Authorization', 'Bearer sb_demo_secret_token_12345');
-		requestWithAuth.headers.set('X-Sandbox-Auth', 'injected-by-outbound-worker');
-		return fetch(requestWithAuth);
-	},
-};
-
-const COOKIE_NAME = 'sandbox_id';
-
 const app = new Hono<{ Bindings: Env; Variables: { sandboxId: string } }>();
 
-// Assign a unique sandbox ID per user via a persistent cookie.
-// If no cookie is present, generate a new UUID and set it.
+// A preview token grants access to one port of one user's container.
 app.use('*', async (c, next) => {
-	let sandboxId = getCookie(c, COOKIE_NAME);
-	if (!sandboxId) {
+	const host = new URL(c.req.url).hostname;
+	const preview = /^(\d+)-((?:oc-)?[a-f0-9-]{36})-([a-z0-9]{16})\.(?:sandbox-sdk\.site|localhost)$/.exec(host);
+	if (!preview) return next();
+	const [, port, name, token] = preview;
+	const namespace = name.startsWith('oc-') ? c.env.OpencodeSandbox : c.env.Sandbox;
+	const headers = new Headers(c.req.raw.headers);
+	// Replace visitor-supplied controls with the values authenticated by the hostname.
+	headers.set('X-Sandbox-Port', port);
+	headers.set('X-Sandbox-Token', token);
+	return namespace.getByName(name).fetch(new Request(c.req.raw, { headers }));
+});
+
+app.use('*', async (c, next) => {
+	let sandboxId = getCookie(c, 'sandbox_id');
+	if (!sandboxId || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(sandboxId)) {
 		sandboxId = crypto.randomUUID();
-		setCookie(c, COOKIE_NAME, sandboxId, {
+		setCookie(c, 'sandbox_id', sandboxId, {
 			path: '/',
 			httpOnly: true,
+			secure: new URL(c.req.url).protocol === 'https:',
 			sameSite: 'Lax',
-			maxAge: 60 * 60 * 24 * 365, // 1 year
+			maxAge: 60 * 60 * 24 * 365,
 		});
 	}
 	c.set('sandboxId', sandboxId);
 	return next();
 });
 
-// Route preview-URL requests to the correct sandbox binding.
-// Both Sandbox and OpencodeSandbox use the same Sandbox class, so proxyToSandbox
-// can't distinguish them. We check the hostname for the OpenCode sandbox ID first
-// and proxy with only that binding, then fall through to the default.
-app.use('*', async (c, next) => {
-	const host = new URL(c.req.url).hostname;
-
-	// OpenCode preview URLs contain the sandbox ID prefix "oc-" in the subdomain.
-	// Pass only the OpencodeSandbox binding so proxyToSandbox routes to the right DO.
-	if (host.includes('-oc-')) {
-		const response = await proxyToSandbox(c.req.raw, { Sandbox: c.env.OpencodeSandbox });
-		if (response) return response;
-	}
-
-	// Default sandbox preview URLs
-	const response = await proxyToSandbox(c.req.raw, { Sandbox: c.env.Sandbox });
-	if (response) return response;
-
-	return next();
-});
-
-// WebSocket terminal upgrade. PTY job control is configured in the image.
 app.get('/ws/terminal', async (c) => {
-	if (c.req.header('Upgrade') !== 'websocket') {
-		return c.text('WebSocket upgrade required', 426);
-	}
-	const sandboxId = c.get('sandboxId');
-	// eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any -- sandbox proxy typing not available
-	const sb = getSandbox(c.env.Sandbox, sandboxId) as any;
-	return await sb.terminal(c.req.raw, { cols: 120, rows: 30 });
+	const headers = new Headers(c.req.raw.headers);
+	headers.delete('X-Sandbox-Port');
+	headers.delete('X-Sandbox-Token');
+	return c.env.Sandbox.getByName(c.get('sandboxId')).fetch(new Request(c.req.raw, { headers }));
 });
 
-// OpenCode: start the server, expose its port, return the preview URL for iframe embedding
 app.get('/api/opencode/start', async (c) => {
-	// Use .host (includes port) so the SDK constructs correct local dev URLs
-	const hostname = new URL(c.req.url).host;
-	const sandboxId = c.get('sandboxId');
-	const sandbox = getSandbox(c.env.OpencodeSandbox, `oc-${sandboxId.slice(0, 8)}`);
-
-	// Clone the agents repo into the working directory if it doesn't exist yet
-	const { exists } = await sandbox.exists('/home/user/agents');
-	if (!exists) {
-		await sandbox.gitCheckout('https://github.com/cloudflare/agents', {
-			targetDir: '/home/user/agents',
-			depth: 1,
-		});
-	}
-
-	const server = await createOpencodeServer(sandbox, {
-		directory: '/home/user/agents',
-	});
-
-	// Reuse existing preview URL if the port is already exposed
-	const exposedPorts = await sandbox.getExposedPorts(hostname);
-	const existing = exposedPorts.find((p) => p.port === server.port);
-	const exposed = existing ?? (await sandbox.exposePort(server.port, { hostname, name: 'opencode' }));
-	const url = exposed.url;
-
+	const sandbox = c.env.OpencodeSandbox.getByName(`oc-${c.get('sandboxId')}`);
+	const { url } = await sandbox.startOpencode(new URL(c.req.url).host);
 	return c.json({ url });
 });
 
-// Mount all API routes
 app.route('/api', api);
-
-// Fall back to static assets for everything else (SPA)
-app.all('*', async (c) => {
-	return c.env.ASSETS.fetch(c.req.raw);
-});
-
+app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
 export default app;
-
-export class OpencodeSandbox extends LifetimeLimitedSandbox {}
-
-export { ContainerProxy } from '@cloudflare/sandbox';

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { DemoStrip } from '../components/demo-strip';
 import { SlideLayout } from '../components/slide-layout';
@@ -18,8 +19,7 @@ interface ExecResult {
 	duration: number;
 }
 
-const CODE = `const result = await sandbox.exec("python3 --version");
-// → { stdout: "Python 3.11.2", exitCode: 0, success: true }`;
+const CODE = sdkExamples.commands;
 
 const PRESETS = ['python3 --version', 'node --version', 'uname -a', 'whoami && pwd', 'ls -la /workspace'];
 

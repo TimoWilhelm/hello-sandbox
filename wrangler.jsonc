@@ -6,8 +6,19 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"workers_dev": false,
 	"preview_urls": false,
+	"routes": [
+		{
+			"pattern": "sandbox-sdk.site",
+			"custom_domain": true,
+		},
+		{
+			"pattern": "*.sandbox-sdk.site/*",
+			"zone_name": "sandbox-sdk.site",
+		},
+	],
 	"vars": {
-		"SANDBOX_TRANSPORT": "rpc",
+		"S3_ENDPOINT": "https://415516b7403708741d606f6930e89e3f.r2.cloudflarestorage.com",
+		"S3_BUCKET": "hello-sandbox-backup",
 	},
 	"observability": {
 		"enabled": true,
@@ -29,15 +40,15 @@
 	"containers": [
 		{
 			"class_name": "Sandbox",
-			"image": "./Dockerfile",
-			"instance_type": "basic",
-			"max_instances": 100,
+			"name": "hello-sandbox-runtime-v1",
+			"scheduling_policy": "durable_object",
+			"images": { "sandbox": { "dockerfile": "./Dockerfile" } },
 		},
 		{
 			"class_name": "OpencodeSandbox",
-			"image": "./Dockerfile.opencode",
-			"instance_type": "basic",
-			"max_instances": 100,
+			"name": "hello-sandbox-opencode-v1",
+			"scheduling_policy": "durable_object",
+			"images": { "sandbox": { "dockerfile": "./Dockerfile.opencode" } },
 		},
 	],
 	"durable_objects": {

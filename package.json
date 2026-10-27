@@ -17,7 +17,6 @@
 		"prepare": "husky"
 	},
 	"dependencies": {
-		"@opencode-ai/sdk": "^1.2.26",
 		"ai": "^6",
 		"hono": "^4",
 		"lucide-react": "^0.577.0",
@@ -31,8 +30,8 @@
 		"zod": "^4"
 	},
 	"devDependencies": {
-		"@cloudflare/sandbox": "^0.10.2",
-		"@cloudflare/vite-plugin": "^1",
+		"@cloudflare/sandbox": "1.0.3",
+		"@cloudflare/vite-plugin": "1.65.0",
 		"@eslint/js": "^10.0.1",
 		"@tailwindcss/vite": "^4",
 		"@types/react": "^19",
@@ -59,6 +58,6 @@
 		"typescript": "^5",
 		"typescript-eslint": "^8.57.0",
 		"vite": "^7",
-		"wrangler": "^4.84.1"
+		"wrangler": "4.154.0"
 	}
 }

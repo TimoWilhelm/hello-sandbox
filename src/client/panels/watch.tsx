@@ -8,6 +8,7 @@ import { CodeBlock } from '@/components/code-block';
 import { FileTree } from '@/components/file-tree';
 import { Output, Stdout } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface WatchEvent {
 	id: number;
@@ -23,13 +24,7 @@ interface ExecResult {
 	success: boolean;
 }
 
-const SDK_CODE = `const stream = await sandbox.watch('/workspace', {
-  recursive: true,
-  include: ['*.ts', '*.py'],
-});
-for await (const event of parseSSEStream(stream)) {
-  console.log(event.eventType, event.path);
-}`;
+const SDK_CODE = sdkExamples.watch;
 
 const EVENT_BADGE_VARIANT: Record<string, 'success' | 'error' | 'info' | 'warning' | 'ai' | 'neutral'> = {
 	create: 'success',

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { BrowserFrame } from '@/components/browser-frame';
 import { Output, Stdout, Stderr, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { CollapsibleCodeContext } from '../components/collapsible-code-context';
 import { Reveal } from '../components/reveal';
@@ -18,14 +19,10 @@ interface PreviewStartResult {
 	port: number;
 }
 
-const CODE = `const proc = await sandbox.startProcess(
-  "python3 -m http.server 8080", { cwd: "/workspace" }
-);
-await proc.waitForPort(8080, { mode: "tcp", timeout: 10_000 });
-const { url } = await sandbox.exposePort(8080, { hostname });`;
+const CODE = sdkExamples.preview;
 
 const FLOW_ITEMS = [
-	{ label: 'Server starts in sandbox', sub: 'python3 -m http.server 8080' },
+	{ label: 'Server starts in sandbox', sub: 'python3 /opt/http-server.py 8080' },
 	{ label: 'Port exposed', sub: 'sandbox.exposePort(8080)' },
 	{ label: 'Public URL generated', sub: 'https://8080-demo-xxx.domain.com' },
 ];
@@ -43,7 +40,7 @@ export function PreviewSlide({ step }: SlideProperties) {
 	useEffect(() => {
 		if (step < 2 || started.current) return;
 		started.current = true;
-		api<PreviewStartResult>('/api/preview/start', { command: 'python3 -m http.server 8080', port: 8080 })
+		api<PreviewStartResult>('/api/preview/start', { command: 'python3 /opt/http-server.py 8080', port: 8080 })
 			.then((data) => {
 				setLines((p) => [...p, `Server started on port ${data.port}`, `Preview URL: ${data.url}`]);
 				setPreviewUrl(data.url);
@@ -64,7 +61,7 @@ export function PreviewSlide({ step }: SlideProperties) {
 				{/* Flow + code: full block at step 1, collapses to compact strip at step 2 */}
 				{step >= 1 && (
 					<div className="shrink-0">
-						<CollapsibleCodeContext step={step} code={CODE} label="SDK" summary="sandbox.startProcess() → sandbox.exposePort(port)">
+						<CollapsibleCodeContext step={step} code={CODE} label="SDK" summary="sandbox.startServer() → sandbox.exposePort(port)">
 							{/* Flow diagram */}
 							<div className="mb-5 flex items-center gap-5">
 								{FLOW_ITEMS.map((item, index) => (

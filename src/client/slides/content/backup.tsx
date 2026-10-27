@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FileTree } from '@/components/file-tree';
 import { Output, Stdout, Stderr, Info, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { CollapsibleCodeContext } from '../components/collapsible-code-context';
 import { Reveal } from '../components/reveal';
@@ -31,13 +32,11 @@ interface WriteResult {
 
 const MOUNT_PATH = '/data';
 
-const CODE = `await sandbox.mountBucket('BACKUP_BUCKET', '/data');
-await sandbox.writeFile('/data/results.json', JSON.stringify(results, null, 2));
-await sandbox.unmountBucket('/data');`;
+const CODE = sdkExamples.backup;
 
 const FLOW_ITEMS = [
-	{ icon: Database, label: 'Worker binding', sub: 'BACKUP_BUCKET' },
-	{ icon: HardDriveDownload, label: 'Bucket mount', sub: "sandbox.mountBucket('/data')" },
+	{ icon: Database, label: 'Worker gateway', sub: 'S3Gateway' },
+	{ icon: HardDriveDownload, label: 'Bucket mount', sub: "sandbox.mountData('/data')" },
 	{ icon: FileJson, label: 'Standard file I/O', sub: '/data/results.json' },
 ];
 
@@ -67,7 +66,7 @@ export function BackupSlide({ step }: SlideProperties) {
 		try {
 			const data = await api<MountResult>('/api/backup/mount', { path: MOUNT_PATH });
 			setMounted(true);
-			setLines((previous) => [...previous, `$ sandbox.mountBucket('BACKUP_BUCKET', '${MOUNT_PATH}')`, `Mounted in ${data.mode} mode`]);
+			setLines((previous) => [...previous, `$ sandbox.mountData('BACKUP_BUCKET', '${MOUNT_PATH}')`, `Mounted in ${data.mode} mode`]);
 			setRefreshKey((key) => key + 1);
 		} catch (error_) {
 			setError(error_ instanceof Error ? error_.message : 'Failed');
@@ -102,7 +101,7 @@ export function BackupSlide({ step }: SlideProperties) {
 		try {
 			await api('/api/backup/unmount', { path: MOUNT_PATH });
 			setMounted(false);
-			setLines((previous) => [...previous, '', `$ sandbox.unmountBucket('${MOUNT_PATH}')`, `Unmounted ${MOUNT_PATH}`]);
+			setLines((previous) => [...previous, '', `$ sandbox.unmountData('${MOUNT_PATH}')`, `Unmounted ${MOUNT_PATH}`]);
 		} catch (error_) {
 			setError(error_ instanceof Error ? error_.message : 'Failed');
 		} finally {
@@ -112,17 +111,12 @@ export function BackupSlide({ step }: SlideProperties) {
 
 	return (
 		<SlideLayout>
-			<SlideTitle
-				number="10"
-				title="Mount R2 Buckets"
-				subtitle="Mount a Worker binding and use normal filesystem operations."
-				step={step}
-			/>
+			<SlideTitle number="10" title="Mount R2 Buckets" subtitle="Mount an R2 prefix and use normal filesystem operations." step={step} />
 
 			<div className="mt-6 flex min-h-0 flex-1 flex-col gap-5">
 				{step >= 1 && (
 					<div className="shrink-0">
-						<CollapsibleCodeContext step={step} code={CODE} label="SDK" summary="sandbox.mountBucket() → sandbox.writeFile()">
+						<CollapsibleCodeContext step={step} code={CODE} label="SDK" summary="sandbox.mountData() → sandbox.writeFile()">
 							<div className="mb-5 flex items-center justify-center gap-5">
 								{FLOW_ITEMS.map((item, index) => {
 									const Icon = item.icon;

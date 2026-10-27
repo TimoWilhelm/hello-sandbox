@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 
 import { BrowserFrame } from '@/components/browser-frame';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { CollapsibleCodeContext } from '../components/collapsible-code-context';
 import { Reveal } from '../components/reveal';
@@ -10,14 +11,7 @@ import { SlideTitle } from '../components/slide-title';
 
 import type { SlideProperties } from '../types';
 
-const CODE = `// Uses the official -opencode base image
-// FROM cloudflare/sandbox:0.10.3-opencode
-
-const sandbox = getSandbox(env.OpencodeSandbox, "opencode");
-const server = await createOpencodeServer(sandbox, {
-  directory: "/home/user/agents",
-});
-const { url } = await sandbox.exposePort(server.port, { hostname });`;
+const CODE = sdkExamples.opencode;
 
 /**
  * Slide 10: OpenCode / AI Coding Agents
@@ -59,12 +53,7 @@ export function OpencodeSlide({ step }: SlideProperties) {
 				{/* Setup code: full block at step 1, collapses to compact strip at step 2 */}
 				{step >= 1 && (
 					<div className="shrink-0">
-						<CollapsibleCodeContext
-							step={step}
-							code={CODE}
-							label="WORKER"
-							summary="createOpencodeServer(sandbox) → sandbox.exposePort(port)"
-						/>
+						<CollapsibleCodeContext step={step} code={CODE} label="WORKER" summary="opencode serve → authenticated preview" />
 					</div>
 				)}
 

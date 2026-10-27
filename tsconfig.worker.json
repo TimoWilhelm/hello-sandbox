@@ -11,5 +11,5 @@
 		"forceConsistentCasingInFileNames": true,
 		"types": ["./worker-configuration.d.ts"]
 	},
-	"include": ["src/index.ts", "src/api/**/*.ts", "worker-configuration.d.ts"]
+	"include": ["src/index.ts", "src/api/**/*.ts", "src/runtime/**/*.ts", "src/environment.d.ts", "worker-configuration.d.ts"]
 }

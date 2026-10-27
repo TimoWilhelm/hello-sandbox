@@ -7,6 +7,7 @@ import { Output, Stdout, Stderr, Dim } from '@/components/output';
 import { Spinner } from '@/components/spinner';
 import { api } from '@/lib/api';
 import { formatBytes } from '@/lib/format';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface FileEntry {
 	name: string;
@@ -29,10 +30,7 @@ interface ReadResult {
 	size: number;
 }
 
-const SDK_CODE = `await sandbox.mkdir('/workspace/project', { recursive: true });
-await sandbox.writeFile('/workspace/project/main.py', code);
-const file = await sandbox.readFile('/workspace/project/main.py');
-const list = await sandbox.listFiles('/workspace');`;
+const SDK_CODE = sdkExamples.files;
 
 export function FilesPanel() {
 	const [currentPath, setCurrentPath] = useState('/workspace');

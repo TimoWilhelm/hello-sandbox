@@ -7,6 +7,7 @@ import { CodeBlock } from '@/components/code-block';
 import { Output, Stdout, Stderr, Info } from '@/components/output';
 import { Spinner } from '@/components/spinner';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface TunnelStartResult {
 	success: boolean;
@@ -18,15 +19,10 @@ interface TunnelStopResult {
 	success: boolean;
 }
 
-const SDK_CODE = `const proc = await sandbox.startProcess('python3 -m http.server 8081', {
-  cwd: '/workspace',
-});
-await proc.waitForPort(8081, { mode: 'tcp', timeout: 10_000 });
-const tunnel = await sandbox.tunnels.get(8081);
-return tunnel.url;`;
+const SDK_CODE = sdkExamples.tunnels;
 
 export function TunnelsPanel() {
-	const [command, setCommand] = useState('python3 -m http.server 8081');
+	const [command, setCommand] = useState('python3 /opt/http-server.py 8081');
 	const [port, setPort] = useState('8081');
 	const [tunnelUrl, setTunnelUrl] = useState<string | undefined>();
 	const [loading, setLoading] = useState(false);
@@ -164,7 +160,7 @@ export function TunnelsPanel() {
 			</div>
 
 			<Callout>
-				<span className="font-medium">sandbox.tunnels.get()</span> is the zero-config option for local development, demos, and{' '}
+				<span className="font-medium">sandbox.openTunnel()</span> is the zero-config option for local development, demos, and{' '}
 				<code>.workers.dev</code> deployments. Tunnel URLs change when the container restarts, and <code>text/event-stream</code> is not
 				supported through <code>trycloudflare.com</code>. For stable production hostnames, use{' '}
 				<span className="font-medium">exposePort()</span>.

@@ -1,4 +1,6 @@
 {
 	"$schema": "https://unpkg.com/knip@5/schema.json",
+	"entry": ["container/javascript-kernel.ts", "src/environment.d.ts"],
+	"ignoreDependencies": ["cloudflare"],
 	"ignoreExportsUsedInFile": { "interface": true, "type": true }
 }
