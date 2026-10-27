@@ -6,6 +6,7 @@ import { Callout } from '@/components/callout';
 import { CodeBlock } from '@/components/code-block';
 import { Output, Stdout, Stderr, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface ExecResult {
 	stdout: string;
@@ -16,9 +17,7 @@ interface ExecResult {
 	duration: number;
 }
 
-const SDK_CODE = `const sandbox = getSandbox(env.Sandbox, sandboxId);
-const result = await sandbox.exec('python3 --version');
-// result: { stdout, stderr, exitCode, success, command, duration }`;
+const SDK_CODE = sdkExamples.commands;
 
 const PRESETS = ['python3 --version', 'node --version', 'ls -la /workspace', 'cat /etc/os-release', 'uname -a', 'whoami && pwd'];
 

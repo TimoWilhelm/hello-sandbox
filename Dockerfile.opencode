@@ -1,3 +1,10 @@
-FROM docker.io/cloudflare/sandbox:0.10.3-opencode
+FROM node:24-trixie-slim
 
-EXPOSE 8080
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl git python3 tmux \
+ && rm -rf /var/lib/apt/lists/*
+COPY --from=docker.io/cloudflare/sandbox:1.0.3 /usr/local/bin/sandbox-shim /usr/local/bin/sandbox-shim
+COPY --from=docker.io/oven/bun:1.4.0 /usr/local/bin/bun /usr/local/bin/bun
+RUN BUN_INSTALL=/usr/local bun add --global opencode-ai@1.2.26
+WORKDIR /workspace
+CMD ["sleep", "infinity"]

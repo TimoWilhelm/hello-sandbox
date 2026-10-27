@@ -24,7 +24,7 @@ export default defineConfig(
 			globals: globals.browser,
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['vite.config.ts', 'eslint.config.js', 'lint-staged.config.js'],
+					allowDefaultProject: ['vite.config.ts', 'eslint.config.js', 'lint-staged.config.js', 'container/javascript-kernel.ts'],
 				},
 				tsconfigRootDir: import.meta.dirname,
 			},

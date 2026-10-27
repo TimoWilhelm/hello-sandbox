@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Output, Stdout, Stderr, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { Reveal } from '../components/reveal';
 import { SlideLayout } from '../components/slide-layout';
@@ -12,10 +13,7 @@ import { RevealCode } from '../components/typewriter-code';
 
 import type { SlideProperties } from '../types';
 
-const CODE = `await sandbox.mkdir("/workspace/src", { recursive: true });
-await sandbox.writeFile("/workspace/src/index.ts", code);
-const content = await sandbox.readFile("/workspace/src/index.ts");
-const files = await sandbox.listFiles("/workspace");`;
+const CODE = sdkExamples.files;
 
 interface FileEntry {
 	name: string;

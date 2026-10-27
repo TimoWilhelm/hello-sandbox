@@ -5,6 +5,7 @@ import { Badge } from '@/components/badge';
 import { FileTree } from '@/components/file-tree';
 import { Output, Stdout, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { Reveal } from '../components/reveal';
 import { SlideLayout } from '../components/slide-layout';
@@ -29,13 +30,7 @@ interface ExecResult {
 	success: boolean;
 }
 
-const CODE = `const stream = await sandbox.watch("/workspace", {
-  recursive: true,
-  include: ["*.ts", "*.py"],
-});
-for await (const event of parseSSEStream(stream)) {
-  console.log(event.eventType, event.path);
-}`;
+const CODE = sdkExamples.watch;
 
 const EVENT_BADGE: Record<string, 'success' | 'error' | 'info' | 'warning' | 'neutral'> = {
 	create: 'success',

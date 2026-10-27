@@ -5,6 +5,7 @@ import { Badge } from '@/components/badge';
 import { Output, Stdout, Stderr, Dim, Info } from '@/components/output';
 import { api } from '@/lib/api';
 import { highlightCode } from '@/lib/highlight';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { CollapsibleCodeContext } from '../components/collapsible-code-context';
 import { Reveal } from '../components/reveal';
@@ -41,9 +42,7 @@ interface CodeResult {
 
 type Language = 'python' | 'javascript';
 
-const SDK_CODE = `const ctx = await sandbox.createCodeContext({ language: "python" });
-await sandbox.runCode("x = 42", { context: ctx });
-const result = await sandbox.runCode("print(x * 2)", { context: ctx });`;
+const SDK_CODE = sdkExamples.interpreter;
 
 const PRESETS: Record<string, { label: string; python: string; javascript: string }> = {
 	fibonacci: {
@@ -230,12 +229,7 @@ export function InterpreterSlide({ step }: SlideProperties) {
 			<div className="mt-6 flex flex-1 flex-col gap-5 overflow-y-auto">
 				{/* SDK code: full block at step 1, collapses to compact strip at step 2 */}
 				{step >= 1 && (
-					<CollapsibleCodeContext
-						step={step}
-						code={SDK_CODE}
-						label="SDK"
-						summary="sandbox.createCodeContext() → sandbox.runCode(code, { context })"
-					/>
+					<CollapsibleCodeContext step={step} code={SDK_CODE} label="SDK" summary="IPython / Node kernel → persistent contextId" />
 				)}
 
 				{step >= 2 && (

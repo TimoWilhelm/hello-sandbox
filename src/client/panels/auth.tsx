@@ -6,6 +6,7 @@ import { Callout } from '@/components/callout';
 import { CodeBlock } from '@/components/code-block';
 import { Output, Stderr, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface AuthResult {
 	headers: Record<string, string>;
@@ -14,21 +15,7 @@ interface AuthResult {
 	duration: number;
 }
 
-const SDK_CODE = `import { Sandbox, ContainerProxy } from '@cloudflare/sandbox';
-export { ContainerProxy };
-
-export class MySandbox extends Sandbox {
-  interceptHttps = true;
-}
-
-MySandbox.outboundByHost = {
-  "httpbin.org": (request, env, ctx) => {
-    const requestWithAuth = new Request(request);
-    requestWithAuth.headers.set("Authorization", "Bearer sb_demo_secret_token_12345");
-    requestWithAuth.headers.set("X-Sandbox-Auth", "injected-by-outbound-worker");
-    return fetch(requestWithAuth);
-  },
-};`;
+const SDK_CODE = sdkExamples.auth;
 
 const COMMAND = 'curl https://httpbin.org/headers';
 

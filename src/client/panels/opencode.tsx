@@ -4,19 +4,11 @@ import { useState } from 'react';
 import { BrowserFrame } from '@/components/browser-frame';
 import { Callout } from '@/components/callout';
 import { CodeBlock } from '@/components/code-block';
+import { sdkExamples } from '@/lib/sdk-examples';
 
-const SDK_CODE = `import { createOpencodeServer } from '@cloudflare/sandbox/opencode';
+const SDK_CODE = sdkExamples.opencode;
 
-const sandbox = getSandbox(env.OpencodeSandbox, 'opencode');
-const server = await createOpencodeServer(sandbox, {
-  directory: '/home/user/agents',
-});
-// Expose the OpenCode port on its own preview URL
-const { url } = await sandbox.exposePort(server.port, { hostname });`;
-
-const DOCKERFILE_CODE = `# Uses the official OpenCode base image — includes the OpenCode CLI out of the box
-FROM docker.io/cloudflare/sandbox:0.10.3-opencode
-EXPOSE 8080`;
+const DOCKERFILE_CODE = sdkExamples.opencodeImage;
 
 function ConnectingBars() {
 	return (

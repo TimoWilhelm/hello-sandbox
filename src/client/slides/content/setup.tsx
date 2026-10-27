@@ -10,13 +10,12 @@ const STEPS = [
 		number: '1',
 		label: 'Configure bindings',
 		file: 'wrangler.jsonc',
-		description: 'Define a container with the Sandbox class. Durable Objects handle lifecycle and routing automatically.',
+		description: 'Choose Durable Object scheduling and define a named image for your class.',
 		code: `{
   "containers": [{
     "class_name": "Sandbox",
-    "image": "./Dockerfile",
-    "instance_type": "lite",
-    "max_instances": 5
+    "scheduling_policy": "durable_object",
+    "images": { "sandbox": { "dockerfile": "./Dockerfile" } }
   }],
   "durable_objects": {
     "bindings": [{
@@ -30,30 +29,32 @@ const STEPS = [
 		number: '2',
 		label: 'Define your image',
 		file: 'Dockerfile',
-		description: 'Base image includes Python 3.11, Node.js 20, and common tools. Add your own dependencies on top.',
-		code: `FROM docker.io/cloudflare/sandbox:0.10.3-python
-
-RUN pip install pandas numpy requests
-RUN npm install -g typescript
-
-EXPOSE 8080`,
+		description: 'Choose your Linux image and tools, then copy the matching SDK helper into it.',
+		code: `FROM node:24-trixie-slim
+RUN apt-get update && apt-get install -y python3 git ca-certificates
+COPY --from=cloudflare/sandbox:1.0.3 /usr/local/bin/sandbox-shim /usr/local/bin/sandbox-shim
+WORKDIR /workspace
+CMD ["sleep", "infinity"]`,
 	},
 	{
 		number: '3',
 		label: 'Write your Worker',
 		file: 'src/index.ts',
-		description:
-			'Import the SDK, re-export the Sandbox class, and call getSandbox() to get a handle. Containers start lazily on first use.',
-		code: `import { getSandbox } from "@cloudflare/sandbox";
-export { Sandbox } from "@cloudflare/sandbox";
-
-export default {
-  async fetch(request, env) {
-    const sandbox = getSandbox(env.Sandbox, "user-123");
-    const result = await sandbox.exec("python3 --version");
-    return Response.json(result);
+		description: 'Define your Durable Object methods. Start a container lazily and wait for command output.',
+		code: `import { DurableObject } from 'cloudflare:workers';
+export class Sandbox extends DurableObject {
+  async version() {
+    const container = this.ctx.container;
+    if (!container.running) {
+      container.start({ image: container.images.sandbox, instance: 'basic', enableInternet: true });
+      await container.setInactivityTimeout(600000);
+    }
+    const process = await container.exec(['python3', '--version']);
+    const result = await process.output();
+    return new TextDecoder().decode(result.stdout);
   }
-};`,
+}
+// Worker: await env.Sandbox.getByName('user-123').version()`,
 	},
 ];
 

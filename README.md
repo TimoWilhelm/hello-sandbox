@@ -10,7 +10,7 @@ Interactive demo app for the [Cloudflare Sandbox SDK](https://developers.cloudfl
 - Start HTTP servers inside the container and expose them via preview URLs or quick Cloudflare Tunnels
 - Live filesystem change stream via Server-Sent Events
 - Embedded [OpenCode](https://opencode.ai) agent running in a dedicated sandbox
-- Mount an R2 bucket directly into the sandbox filesystem via Worker bindings
+- Mount an R2 bucket directly into the sandbox filesystem through S3Mount and a credential-isolating Worker gateway
 - Slides mode (`?mode=slides`) for presenting
 
 ## Tech Stack
@@ -73,7 +73,9 @@ Cloudflare bindings in `wrangler.jsonc`:
 
 - `AI` (Workers AI) - LLM inference for the AI Exec panel
 - `ASSETS` (Static Assets) - SPA asset serving
-- `BACKUP_BUCKET` (R2 Bucket) - mounted into the sandbox with `sandbox.mountBucket()`
+- `BACKUP_BUCKET` (R2 Bucket) - private backup storage; `S3Mount` uses a bucket-scoped Worker credential through `S3Gateway`
+- `S3_ENDPOINT` / `S3_BUCKET` - mount source
+- `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` - Worker secrets for the backup bucket only
 - `Sandbox` (Durable Object) - main demo sandbox
 - `OpencodeSandbox` (Durable Object) - dedicated OpenCode agent sandbox
 
@@ -84,3 +86,5 @@ Run `bun run cf-typegen` after changing bindings.
 - [Sandbox SDK docs](https://developers.cloudflare.com/sandbox/)
 - [Workers docs](https://developers.cloudflare.com/workers/)
 - [OpenCode](https://opencode.ai/)
+
+The app uses Sandbox SDK 1.0.3 and native container execution. See [DEPLOYMENT.md](DEPLOYMENT.md) for runtime features, limits and credential rotation.

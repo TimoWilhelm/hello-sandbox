@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { BrowserFrame } from '@/components/browser-frame';
 import { Output, Stdout, Stderr, Dim } from '@/components/output';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 import { CollapsibleCodeContext } from '../components/collapsible-code-context';
 import { Reveal } from '../components/reveal';
@@ -18,16 +19,11 @@ interface TunnelStartResult {
 	port: number;
 }
 
-const CODE = `const proc = await sandbox.startProcess(
-  "python3 -m http.server 8081", { cwd: "/workspace" }
-);
-await proc.waitForPort(8081, { mode: "tcp", timeout: 10_000 });
-const tunnel = await sandbox.tunnels.get(8081);
-return tunnel.url;`;
+const CODE = sdkExamples.tunnels;
 
 const FLOW_ITEMS = [
-	{ label: 'Server starts in sandbox', sub: 'python3 -m http.server 8081' },
-	{ label: 'Tunnel created', sub: 'sandbox.tunnels.get(8081)' },
+	{ label: 'Server starts in sandbox', sub: 'python3 /opt/http-server.py 8081' },
+	{ label: 'Tunnel created', sub: 'sandbox.openTunnel(8081)' },
 	{ label: 'Public URL generated', sub: 'https://random.trycloudflare.com' },
 ];
 
@@ -40,7 +36,7 @@ export function TunnelsSlide({ step }: SlideProperties) {
 	useEffect(() => {
 		if (step < 2 || started.current) return;
 		started.current = true;
-		api<TunnelStartResult>('/api/tunnels/start', { command: 'python3 -m http.server 8081', port: 8081 })
+		api<TunnelStartResult>('/api/tunnels/start', { command: 'python3 /opt/http-server.py 8081', port: 8081 })
 			.then((data) => {
 				setLines((previous) => [...previous, `Server started on port ${data.port}`, `Tunnel URL: ${data.url}`]);
 				setTunnelUrl(data.url);
@@ -60,7 +56,7 @@ export function TunnelsSlide({ step }: SlideProperties) {
 			<div className="mt-6 flex min-h-0 flex-1 flex-col gap-5">
 				{step >= 1 && (
 					<div className="shrink-0">
-						<CollapsibleCodeContext step={step} code={CODE} label="SDK" summary="sandbox.startProcess() → sandbox.tunnels.get(port)">
+						<CollapsibleCodeContext step={step} code={CODE} label="SDK" summary="sandbox.startServer() → sandbox.openTunnel(port)">
 							<div className="mb-5 flex items-center gap-5">
 								{FLOW_ITEMS.map((item, index) => (
 									<div key={item.label} className="flex items-center gap-5">

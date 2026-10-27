@@ -7,6 +7,7 @@ import { CodeBlock } from '@/components/code-block';
 import { Output, Stdout, Stderr, Info, Dim } from '@/components/output';
 import { api } from '@/lib/api';
 import { highlightCode } from '@/lib/highlight';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface CodeLogs {
 	stdout: string[];
@@ -36,9 +37,7 @@ interface CodeResult {
 
 type Language = 'python' | 'javascript';
 
-const SDK_CODE = `const ctx = await sandbox.createCodeContext({ language: 'python' });
-await sandbox.runCode('x = 42', { context: ctx });
-const result = await sandbox.runCode('print(x * 2)', { context: ctx });`;
+const SDK_CODE = sdkExamples.interpreter;
 
 const PRESETS: Record<string, { label: string; python: string; javascript: string }> = {
 	fibonacci: {

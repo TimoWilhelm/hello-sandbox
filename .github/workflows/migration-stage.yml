@@ -36,8 +36,10 @@ jobs:
           config.routes = [];
           config.main = path.resolve(config.main);
           for (const container of config.containers) {
-            container.image = path.resolve(container.image);
-            container.image_build_context = process.cwd();
+            for (const image of Object.values(container.images)) {
+              image.dockerfile = path.resolve(image.dockerfile);
+              image.build_context = process.cwd();
+            }
           }
           fs.mkdirSync('.wrangler', { recursive: true });
           fs.writeFileSync('.wrangler/migration-stage.json', JSON.stringify(config));

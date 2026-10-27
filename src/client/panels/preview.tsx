@@ -7,6 +7,7 @@ import { CodeBlock } from '@/components/code-block';
 import { Output, Stdout, Stderr, Info } from '@/components/output';
 import { Spinner } from '@/components/spinner';
 import { api } from '@/lib/api';
+import { sdkExamples } from '@/lib/sdk-examples';
 
 interface PreviewStartResult {
 	success: boolean;
@@ -18,14 +19,10 @@ interface PreviewStopResult {
 	success: boolean;
 }
 
-const SDK_CODE = `const proc = await sandbox.startProcess('python3 -m http.server 8080', {
-  cwd: '/workspace',
-});
-await proc.waitForPort(8080, { mode: 'tcp', timeout: 10_000 });
-const { url } = await sandbox.exposePort(8080, { hostname });`;
+const SDK_CODE = sdkExamples.preview;
 
 export function PreviewPanel() {
-	const [command, setCommand] = useState('python3 -m http.server 8080');
+	const [command, setCommand] = useState('python3 /opt/http-server.py 8080');
 	const [port, setPort] = useState('8080');
 	const [previewUrl, setPreviewUrl] = useState<string | undefined>();
 	const [loading, setLoading] = useState(false);
