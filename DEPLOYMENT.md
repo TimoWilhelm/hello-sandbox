@@ -8,6 +8,16 @@ GitHub Actions builds and deploys the exact `main` commit that passed CI.
 Repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` must target
 the production account. Both build and deploy receive the same account selection.
 
+The account-owned CI token is named
+`github-actions-hello-sandbox-production-20261027` and expires on January 25, 2027. Rotate it before that date, then replace the repository secret with
+`gh secret set CLOUDFLARE_API_TOKEN --repo TimoWilhelm/hello-sandbox` (paste the
+token at the secure prompt). It has Workers Editor, Workers Containers Write,
+Workers Observability Write, Account Settings Read, and Workers R2 Storage
+Metadata Read in the production account. Zone Read and Workers Routes Write
+are limited to the `sandbox-sdk.site` zone. This account-level token can deploy
+other existing Workers and manage containers in that account; this scope and
+its 90-day lifetime were explicitly approved for the migration.
+
 For a manual deployment:
 
 ```bash
