@@ -6,6 +6,16 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"workers_dev": false,
 	"preview_urls": false,
+	"routes": [
+		{
+			"pattern": "sandbox-sdk.site",
+			"custom_domain": true,
+		},
+		{
+			"pattern": "*.sandbox-sdk.site/*",
+			"zone_name": "sandbox-sdk.site",
+		},
+	],
 	"vars": {
 		"SANDBOX_TRANSPORT": "rpc",
 	},
